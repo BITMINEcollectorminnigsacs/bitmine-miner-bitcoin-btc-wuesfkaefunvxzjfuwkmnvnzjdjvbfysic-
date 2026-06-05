@@ -1,1 +1,0 @@
-# bitmine-miner-bitcoin-btc-wuesfkaefunvxzjfuwkmnvnzjdjvbfysic-
