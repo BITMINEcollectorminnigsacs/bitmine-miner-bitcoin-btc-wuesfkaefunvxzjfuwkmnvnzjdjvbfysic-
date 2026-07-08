@@ -189,6 +189,53 @@
   .modal-actions .btn { flex: 1; }
   .btn-outline { background: transparent; border: 1.5px solid var(--border); color: var(--text); }
   .btn-outline:hover { background: #f8fafc; }
+  /* ===== PAYMENT FLOW ===== */
+  .payment-flow { display: none; padding: 0 16px 80px; }
+  .payment-flow.active { display: block; animation: fadeIn 0.3s ease; }
+  .payment-header { text-align: center; padding: 24px 0 16px; }
+  .payment-header h2 { font-size: 20px; font-weight: 800; color: var(--text); }
+  .payment-header p { font-size: 13px; color: var(--text-muted); margin-top: 4px; }
+  .payment-card { background: var(--card); border-radius: var(--radius); padding: 20px; box-shadow: var(--shadow); border: 1px solid var(--border); margin-bottom: 16px; }
+  .payment-row { display: flex; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid var(--border); font-size: 14px; }
+  .payment-row:last-child { border-bottom: none; }
+  .payment-row .label { color: var(--text-muted); font-weight: 500; }
+  .payment-row .value { font-weight: 700; color: var(--text); }
+  .payment-row .value.accent { color: var(--accent); }
+  .qr-wrap { text-align: center; padding: 20px; background: #f8fafc; border-radius: var(--radius-sm); margin: 16px 0; }
+  .qr-wrap svg { width: 180px; height: 180px; }
+  .upi-id-display { font-size: 16px; font-weight: 800; color: var(--primary); letter-spacing: 1px; margin-top: 12px; }
+  .upi-id-label { font-size: 11px; color: var(--text-muted); margin-top: 4px; }
+  .timer { text-align: center; font-size: 14px; color: var(--text-muted); margin: 16px 0; }
+  .timer span { font-weight: 800; color: var(--danger); font-size: 18px; }
+  .status-pill { display: inline-flex; align-items: center; gap: 6px; padding: 6px 14px; border-radius: 20px; font-size: 12px; font-weight: 700; }
+  .status-pill.pending { background: #fef3c7; color: #92400e; }
+  .status-pill.success { background: #dcfce7; color: #166534; }
+  .status-dot { width: 8px; height: 8px; border-radius: 50%; animation: pulse 1.5s infinite; }
+  .status-pill.pending .status-dot { background: #f59e0b; }
+  .status-pill.success .status-dot { background: #22c55e; animation: none; }
+  @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
+  .step-indicator { display: flex; align-items: center; justify-content: center; gap: 8px; margin-bottom: 20px; }
+  .step-dot { width: 10px; height: 10px; border-radius: 50%; background: #cbd5e1; transition: var(--transition); }
+  .step-dot.active { background: var(--primary); box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.15); }
+  .step-dot.completed { background: var(--success); }
+  .step-line { width: 30px; height: 2px; background: #cbd5e1; transition: var(--transition); }
+  .step-line.completed { background: var(--success); }
+  .order-card { background: var(--card); border-radius: var(--radius); padding: 16px; box-shadow: var(--shadow-sm); border: 1px solid var(--border); margin-bottom: 12px; }
+  .order-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+  .order-name { font-size: 14px; font-weight: 700; color: var(--text); }
+  .order-status { font-size: 11px; font-weight: 700; padding: 4px 10px; border-radius: 12px; }
+  .order-status.paid { background: #dcfce7; color: #166534; }
+  .order-status.pending { background: #fef3c7; color: #92400e; }
+  .order-status.mining { background: #dbeafe; color: #1e40af; }
+  .order-status.completed { background: #e5e7eb; color: #374151; }
+  .order-details { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .order-detail { font-size: 12px; }
+  .order-detail .lbl { color: var(--text-muted); }
+  .order-detail .val { font-weight: 700; color: var(--text); }
+  .order-progress { margin-top: 12px; }
+  .progress-bar { height: 6px; background: #e2e8f0; border-radius: 3px; overflow: hidden; }
+  .progress-fill { height: 100%; background: linear-gradient(90deg, var(--primary), var(--accent)); border-radius: 3px; transition: width 0.5s ease; }
+  .progress-text { font-size: 11px; color: var(--text-muted); margin-top: 4px; text-align: right; }
   .hidden { display: none !important; }
 </style>
 <base target="_blank">
@@ -429,8 +476,93 @@
         </div>
       </div>
     </div>
+
+
   </div>
 
+    <!-- PAYMENT FLOW -->
+  <div class="payment-flow" id="payment-flow">
+    <div class="payment-header">
+      <h2>Complete Payment</h2>
+      <p>Pay via UPI to activate your miner</p>
+    </div>
+    <div class="step-indicator">
+      <div class="step-dot active" id="step-1"></div>
+      <div class="step-line" id="line-1"></div>
+      <div class="step-dot" id="step-2"></div>
+      <div class="step-line" id="line-2"></div>
+      <div class="step-dot" id="step-3"></div>
+    </div>
+    <div id="pay-step-1">
+      <div class="payment-card">
+        <div class="payment-row"><span class="label">Product</span><span class="value" id="pay-product">-</span></div>
+        <div class="payment-row"><span class="label">Amount</span><span class="value accent" id="pay-amount">-</span></div>
+        <div class="payment-row"><span class="label">Daily Income</span><span class="value accent" id="pay-daily">-</span></div>
+        <div class="payment-row"><span class="label">Duration</span><span class="value" id="pay-duration">-</span></div>
+        <div class="payment-row"><span class="label">Total Return</span><span class="value accent" id="pay-total">-</span></div>
+      </div>
+      <button class="btn btn-primary" onclick="goToStep2()" style="margin-bottom: 12px;">Proceed to Payment</button>
+      <button class="btn btn-outline" onclick="cancelPayment()" style="background: transparent; border: 1.5px solid var(--border); color: var(--text);">Cancel</button>
+    </div>
+    <div id="pay-step-2" class="hidden">
+      <div class="payment-card">
+        <div style="text-align: center; margin-bottom: 12px;">
+          <div class="status-pill pending" id="pay-status"><span class="status-dot"></span>Waiting for payment</div>
+        </div>
+        <div class="qr-wrap">
+          <img id="upi-qr-img" src="" alt="Scan to Pay" style="width: 180px; height: 180px; border-radius: 8px;"/>
+          <div class="upi-id-display">shashankmb.@ibl</div>
+          <div class="upi-id-label">UPI ID</div>
+          <a id="upi-pay-link" href="#" style="display: inline-block; margin-top: 12px; padding: 10px 20px; background: linear-gradient(135deg, var(--primary), var(--primary-dark)); color: white; border-radius: var(--radius-sm); font-size: 13px; font-weight: 700; text-decoration: none; box-shadow: var(--shadow);">Open UPI App</a>
+        </div>
+        <div class="timer">Payment expires in <span id="pay-timer">05:00</span></div>
+        <div style="font-size: 12px; color: var(--text-muted); text-align: center; line-height: 1.6; margin-bottom: 16px;">
+          Open any UPI app, scan QR or pay to UPI ID.<br>
+          Amount: <strong id="pay-amount-2">-</strong>
+        </div>
+        <div style="background: #f8fafc; border-radius: var(--radius-sm); padding: 16px; border: 1.5px solid var(--border);">
+          <div style="font-size: 12px; font-weight: 600; color: var(--text-muted); margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.5px;">Enter UTR Number</div>
+          <div style="font-size: 11px; color: var(--text-muted); margin-bottom: 12px; line-height: 1.5;">
+            After payment, enter the 12-digit UTR/Reference number from your UPI app to verify.
+          </div>
+          <div class="input-wrap" style="margin-bottom: 12px;">
+            <input type="text" id="utr-input" placeholder="Enter 12-digit UTR" maxlength="12" inputmode="numeric" style="flex: 1; padding: 0 14px; font-size: 15px; height: 48px; color: var(--text); background: transparent; font-family: inherit; border: none; outline: none;"/>
+          </div>
+          <button class="btn btn-primary" onclick="verifyUTR()" style="background: linear-gradient(135deg, #10b981 0%, #059669 100%); box-shadow: 0 4px 14px rgba(16, 185, 129, 0.35);">Verify Payment</button>
+        </div>
+      </div>
+      <button class="btn btn-outline" onclick="cancelPayment()" style="background: transparent; border: 1.5px solid var(--border); color: var(--text); width: 100%;">Cancel</button>
+    </div>    <div id="pay-step-3" class="hidden">
+      <div class="payment-card" style="text-align: center; padding: 32px 20px;">
+        <div style="width: 64px; height: 64px; background: linear-gradient(135deg, #22c55e, #16a34a); border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 16px; box-shadow: 0 4px 14px rgba(34, 197, 94, 0.35);">
+          <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+        </div>
+        <div style="font-size: 20px; font-weight: 800; color: var(--text); margin-bottom: 4px;">Payment Successful!</div>
+        <div style="font-size: 13px; color: var(--text-muted); margin-bottom: 20px;">Your miner is now active</div>
+        <div style="background: #f8fafc; border-radius: var(--radius-sm); padding: 16px; text-align: left;">
+          <div class="payment-row"><span class="label">Product</span><span class="value" id="success-product">-</span></div>
+          <div class="payment-row"><span class="label">Amount Paid</span><span class="value accent" id="success-amount">-</span></div>
+          <div class="payment-row"><span class="label">Daily Income</span><span class="value accent" id="success-daily">-</span></div>
+          <div class="payment-row"><span class="label">Duration</span><span class="value" id="success-duration">-</span></div>
+          <div class="payment-row"><span class="label">Total Return</span><span class="value accent" id="success-total">-</span></div>
+        </div>
+      </div>
+      <button class="btn btn-primary" onclick="finishPayment()">Go to My Orders</button>
+    </div>
+  </div>
+
+
+
+  <!-- ADMIN PAGE -->
+  <div class="page" id="page-admin" style="padding: 16px 16px 80px;">
+    <div style="text-align: center; padding: 24px 0 16px;">
+      <h2 style="font-size: 20px; font-weight: 800; color: var(--text);">Admin Panel</h2>
+      <p style="font-size: 13px; color: var(--text-muted); margin-top: 4px;">Verify pending UTR payments</p>
+    </div>
+    <div id="admin-pending-list">
+      <div style="text-align: center; padding: 24px; color: var(--text-muted); font-size: 13px;">No pending payments</div>
+    </div>
+  </div>
   <!-- MY PAGE -->
   <div class="page my-page" id="page-my">
     <div class="user-card">
@@ -441,6 +573,12 @@
         <div class="user-balance" id="my-balance">0.00</div>
       </div>
     </div>
+    <div class="settings-card" style="margin-bottom: 16px;">
+      <div class="settings-title">My Orders</div>
+      <div id="orders-list">
+        <div style="text-align: center; padding: 24px; color: var(--text-muted); font-size: 13px;">No orders yet</div>
+      </div>
+    </div>
     <div class="settings-card">
       <div class="settings-title">Account Settings</div>
       <div class="settings-list">
@@ -449,6 +587,24 @@
           <span>Customer Support</span>
           <span class="settings-arrow">›</span>
         </button>
+      </div>
+
+      <!-- Step 4: Pending Admin Approval -->
+      <div id="pay-step-4" class="hidden">
+        <div class="payment-card" style="text-align: center; padding: 32px 20px;">
+          <div style="width: 64px; height: 64px; background: linear-gradient(135deg, #f59e0b, #d97706); border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 16px; box-shadow: 0 4px 14px rgba(245, 158, 11, 0.35);">
+            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+          </div>
+          <div style="font-size: 20px; font-weight: 800; color: var(--text); margin-bottom: 4px;">Pending Verification</div>
+          <div style="font-size: 13px; color: var(--text-muted); margin-bottom: 20px;">Your payment is being reviewed by admin</div>
+          <div style="background: #f8fafc; border-radius: var(--radius-sm); padding: 16px; text-align: left;">
+            <div class="payment-row"><span class="label">Product</span><span class="value" id="pending-product">-</span></div>
+            <div class="payment-row"><span class="label">Amount</span><span class="value accent" id="pending-amount">-</span></div>
+            <div class="payment-row"><span class="label">UTR Number</span><span class="value" id="pending-utr">-</span></div>
+            <div class="payment-row"><span class="label">Status</span><span class="value" style="color: #f59e0b; font-weight: 800;">Waiting for Admin</span></div>
+          </div>
+        </div>
+        <button class="btn btn-primary" onclick="finishPayment()">Go to My Orders</button>
       </div>
     </div>
     <button class="logout-btn" onclick="showLogoutModal()">Logout</button>
@@ -463,6 +619,10 @@
     <button class="nav-item" id="nav-my" onclick="switchNav('my')">
       <svg viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
       <span>My</span>
+    </button>
+    <button class="nav-item" id="nav-admin" onclick="switchNav('admin')" style="display: none;">
+      <svg viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>
+      <span>Admin</span>
     </button>
   </div>
 </div>
@@ -500,6 +660,7 @@ const TELEGRAM_LINK = 'https://t.me/BITMINE_MINER_SUPPORT';
 // Edit user credentials here - changes will be loaded automatically on page refresh
 // To change: modify User ID (left), password (center), or balance (right)
 var PREMADE_ACCOUNTS = {
+  'admin': { password: 'admin123', balance: 0 },
   '6361279247': { password: 'shashasha1', balance: 0 },
   '9535762075': { password: 'klmnopqrst2', balance: 108 },
   '8073919594': { password: 'Chetanm2239v', balance: 54},
@@ -589,6 +750,14 @@ function showApp(id) {
   document.getElementById('app-page').style.display = 'block';
   document.getElementById('my-phone').textContent = id;
   updateBalance(id);
+  initOrders();
+
+  // Show admin nav for admin user
+  if (id === 'admin') {
+    document.getElementById('nav-admin').style.display = 'flex';
+  } else {
+    document.getElementById('nav-admin').style.display = 'none';
+  }
 }
 
 function updateBalance(id) {
@@ -690,15 +859,320 @@ function openTelegramSupport() {
   showToast('Opening Telegram Support...', 'info');
 }
 
+var PRODUCT_DATA = {
+  'BITCOIN MINER S21 PRO': { price: 270, daily: 54, duration: 7, total: 378 },
+  'BITCOIN MINER S19 XP': { price: 1500, daily: 225, duration: 15, total: 3375 },
+  'BITCOIN MINER S21 HYDRO': { price: 5000, daily: 650, duration: 30, total: 19500 }
+};
+
+var MERCHANT_UPI = 'shashankmb.@ibl';
+var currentOrder = null;
+var paymentTimer = null;
+var paymentSeconds = 300;
+
 function buyNowTelegram(productName, amount) {
-  var id = Storage.getSession();
-  var message = 'Buy Miner\nProduct: ' + productName + '\nAmount: ' + amount + '\nUser ID: ' + id;
-  var telegramUrl = TELEGRAM_LINK + '?text=' + encodeURIComponent(message);
-  window.open(telegramUrl, '_blank');
-  showToast('Opening Telegram to complete purchase...', 'info');
+  var product = PRODUCT_DATA[productName];
+  if (!product) return;
+
+  currentOrder = {
+    id: 'ORD' + Date.now(),
+    product: productName,
+    price: product.price,
+    daily: product.daily,
+    duration: product.duration,
+    total: product.total,
+    status: 'pending',
+    paidAt: null,
+    daysRemaining: product.duration,
+    totalEarned: 0,
+    nextPayout: null
+  };
+
+  document.getElementById('pay-product').textContent = productName;
+  document.getElementById('pay-amount').textContent = product.price.toLocaleString('en-IN');
+  document.getElementById('pay-daily').textContent = product.daily.toLocaleString('en-IN');
+  document.getElementById('pay-duration').textContent = product.duration + ' Days';
+  document.getElementById('pay-total').textContent = product.total.toLocaleString('en-IN');
+  document.getElementById('pay-amount-2').textContent = '₹' + product.price.toLocaleString('en-IN');
+
+  // Generate UPI payment URL
+  var upiUrl = 'upi://pay?pa=' + encodeURIComponent(MERCHANT_UPI) + '&pn=' + encodeURIComponent('Bitmain Miner') + '&am=' + product.price + '&cu=INR&tn=' + encodeURIComponent('Order ' + currentOrder.id);
+  document.getElementById('upi-pay-link').href = upiUrl;
+
+  // Generate QR code using QRServer API
+  var qrApiUrl = 'https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=' + encodeURIComponent(upiUrl);
+  document.getElementById('upi-qr-img').src = qrApiUrl;
+
+  document.getElementById('page-plan').style.display = 'none';
+  document.getElementById('page-plan').classList.remove('active');
+  document.getElementById('payment-flow').classList.add('active');
+
+  resetPaymentSteps();
+  showPaymentStep(1);
 }
 
-// ==================== WITHDRAW ====================
+function resetPaymentSteps() {
+  document.getElementById('step-1').className = 'step-dot active';
+  document.getElementById('line-1').className = 'step-line';
+  document.getElementById('step-2').className = 'step-dot';
+  document.getElementById('line-2').className = 'step-line';
+  document.getElementById('step-3').className = 'step-dot';
+  document.getElementById('pay-step-1').classList.remove('hidden');
+  document.getElementById('pay-step-2').classList.add('hidden');
+  document.getElementById('pay-step-3').classList.add('hidden');
+}
+
+function showPaymentStep(step) {
+  document.getElementById('pay-step-1').classList.toggle('hidden', step !== 1);
+  document.getElementById('pay-step-2').classList.toggle('hidden', step !== 2);
+  document.getElementById('pay-step-3').classList.toggle('hidden', step !== 3);
+  document.getElementById('pay-step-4').classList.toggle('hidden', step !== 4);
+  if (step >= 1) { document.getElementById('step-1').className = 'step-dot completed'; document.getElementById('line-1').className = 'step-line completed'; }
+  if (step >= 2) { document.getElementById('step-2').className = 'step-dot completed'; document.getElementById('line-2').className = 'step-line completed'; }
+  if (step === 2) { document.getElementById('step-2').className = 'step-dot active'; }
+  if (step >= 3) { document.getElementById('step-3').className = 'step-dot completed'; }
+  if (step === 4) { document.getElementById('step-3').className = 'step-dot completed'; }
+}
+
+function goToStep2() {
+  showPaymentStep(2);
+  startPaymentTimer();
+}
+
+function startPaymentTimer() {
+  paymentSeconds = 300;
+  updateTimerDisplay();
+  if (paymentTimer) clearInterval(paymentTimer);
+  paymentTimer = setInterval(function() {
+    paymentSeconds--;
+    updateTimerDisplay();
+    if (paymentSeconds <= 0) {
+      clearInterval(paymentTimer);
+      showToast('Payment session expired', 'error');
+      cancelPayment();
+    }
+  }, 1000);
+}
+
+function updateTimerDisplay() {
+  var m = Math.floor(paymentSeconds / 60);
+  var s = paymentSeconds % 60;
+  document.getElementById('pay-timer').textContent = (m < 10 ? '0' : '') + m + ':' + (s < 10 ? '0' : '') + s;
+}
+
+function verifyUTR() {
+  var utr = document.getElementById('utr-input').value.trim();
+  if (!utr || utr.length < 6) {
+    showToast('Please enter a valid UTR number', 'error');
+    return;
+  }
+  if (!/^[0-9]+$/.test(utr)) {
+    showToast('UTR must contain only digits', 'error');
+    return;
+  }
+
+  // Check if this UTR was already used
+  var usedUTRs = JSON.parse(localStorage.getItem('bm_used_utrs') || '[]');
+  if (usedUTRs.indexOf(utr) !== -1) {
+    showToast('This UTR has already been used', 'error');
+    return;
+  }
+
+  if (utr.length < 8) {
+    showToast('UTR must be at least 8 digits', 'error');
+    return;
+  }
+
+  if (paymentTimer) clearInterval(paymentTimer);
+
+  // Save UTR with order - mark as PENDING admin approval
+  currentOrder.utr = utr;
+  currentOrder.status = 'pending_admin';
+  currentOrder.submittedAt = Date.now();
+  saveOrder(currentOrder);
+
+  // Show pending approval message
+  document.getElementById('pending-utr').textContent = utr;
+  document.getElementById('pending-product').textContent = currentOrder.product;
+  document.getElementById('pending-amount').textContent = '₹' + currentOrder.price.toLocaleString('en-IN');
+  showPaymentStep(4);
+  showToast('UTR submitted! Waiting for admin verification.', 'info');
+}
+
+function cancelPayment() {
+  if (paymentTimer) clearInterval(paymentTimer);
+  document.getElementById('payment-flow').classList.remove('active');
+  document.getElementById('page-plan').style.display = 'block';
+  document.getElementById('page-plan').classList.add('active');
+  currentOrder = null;
+}
+
+function finishPayment() {
+  cancelPayment();
+  switchNav('my');
+  renderOrders();
+}
+
+function saveOrder(order) {
+  var id = Storage.getSession();
+  var orders = getOrders();
+  orders.push(order);
+  localStorage.setItem('bm_orders_' + id, JSON.stringify(orders));
+}
+
+function getOrders() {
+  var id = Storage.getSession();
+  try { return JSON.parse(localStorage.getItem('bm_orders_' + id) || '[]'); }
+  catch(e) { return []; }
+}
+
+function scheduleDailyPayout(order) {
+  setInterval(function() { checkAndProcessPayouts(); }, 60000);
+  checkAndProcessPayouts();
+}
+
+function checkAndProcessPayouts() {
+  var id = Storage.getSession();
+  if (!id) return;
+  var orders = getOrders();
+  var now = Date.now();
+  var balanceUpdated = false;
+  orders.forEach(function(order) {
+    if (order.status !== 'mining') return;
+    if (order.daysRemaining <= 0) { order.status = 'completed'; balanceUpdated = true; return; }
+    if (order.nextPayout && now >= order.nextPayout) {
+      var currentBalance = Storage.getBalance(id);
+      Storage.setBalance(id, currentBalance + order.daily);
+      order.totalEarned += order.daily;
+      order.daysRemaining--;
+      if (order.daysRemaining > 0) { order.nextPayout = now + 24 * 60 * 60 * 1000; }
+      else { order.status = 'completed'; }
+      balanceUpdated = true;
+      showToast('Daily income credited: ₹' + order.daily.toLocaleString('en-IN'), 'success');
+    }
+  });
+  if (balanceUpdated) {
+    localStorage.setItem('bm_orders_' + id, JSON.stringify(orders));
+    updateBalance(id);
+    if (document.getElementById('page-my').classList.contains('active')) renderOrders();
+  }
+}
+
+function renderOrders() {
+  var container = document.getElementById('orders-list');
+  var orders = getOrders();
+  if (orders.length === 0) {
+    container.innerHTML = '<div style="text-align: center; padding: 24px; color: var(--text-muted); font-size: 13px;">No orders yet</div>';
+    return;
+  }
+  var html = '';
+  orders.slice().reverse().forEach(function(order) {
+    var progress = order.status === 'completed' ? 100 : Math.round(((order.duration - order.daysRemaining) / order.duration) * 100);
+    var statusClass = order.status === 'mining' ? 'mining' : order.status === 'completed' ? 'completed' : order.status === 'pending_admin' ? 'pending' : 'pending';
+    var statusText = order.status === 'mining' ? 'Mining Active' : order.status === 'completed' ? 'Completed' : order.status === 'pending_admin' ? 'Pending Admin' : 'Pending';
+    html += '<div class="order-card"><div class="order-header"><div class="order-name">' + order.product + '</div><div class="order-status ' + statusClass + '">' + statusText + '</div></div><div class="order-details"><div class="order-detail"><div class="lbl">Invested</div><div class="val">₹' + order.price.toLocaleString('en-IN') + '</div></div><div class="order-detail"><div class="lbl">Daily</div><div class="val accent">₹' + order.daily.toLocaleString('en-IN') + '</div></div><div class="order-detail"><div class="lbl">Earned</div><div class="val accent">₹' + order.totalEarned.toLocaleString('en-IN') + '</div></div><div class="order-detail"><div class="lbl">Remaining</div><div class="val">' + order.daysRemaining + ' days</div></div></div><div class="order-progress"><div class="progress-bar"><div class="progress-fill" style="width:' + progress + '%"></div></div><div class="progress-text">' + progress + '% completed</div></div></div>';
+  });
+  container.innerHTML = html;
+}
+
+function initOrders() { checkAndProcessPayouts(); }
+
+// ==================== ADMIN PANEL ====================
+function renderAdminPending() {
+  var container = document.getElementById('admin-pending-list');
+  var allPending = [];
+
+  // Scan all user order keys in localStorage
+  for (var i = 0; i < localStorage.length; i++) {
+    var key = localStorage.key(i);
+    if (key.startsWith('bm_orders_')) {
+      var userId = key.replace('bm_orders_', '');
+      var orders = JSON.parse(localStorage.getItem(key) || '[]');
+      orders.forEach(function(o, idx) {
+        if (o.status === 'pending_admin') {
+          o._userId = userId;
+          o._orderIdx = idx;
+          allPending.push(o);
+        }
+      });
+    }
+  }
+
+  if (allPending.length === 0) {
+    container.innerHTML = '<div style="text-align: center; padding: 24px; color: var(--text-muted); font-size: 13px;">No pending payments</div>';
+    return;
+  }
+
+  var html = '';
+  allPending.forEach(function(o) {
+    html += '<div class="order-card" style="margin-bottom: 12px;">' +
+      '<div class="order-header">' +
+        '<div class="order-name">' + o.product + '</div>' +
+        '<div class="order-status pending">Pending</div>' +
+      '</div>' +
+      '<div class="order-details">' +
+        '<div class="order-detail"><div class="lbl">User ID</div><div class="val">' + o._userId + '</div></div>' +
+        '<div class="order-detail"><div class="lbl">Amount</div><div class="val accent">₹' + o.price.toLocaleString('en-IN') + '</div></div>' +
+        '<div class="order-detail"><div class="lbl">UTR</div><div class="val" style="font-family: monospace;">' + o.utr + '</div></div>' +
+        '<div class="order-detail"><div class="lbl">Daily</div><div class="val accent">₹' + o.daily.toLocaleString('en-IN') + '</div></div>' +
+      '</div>' +
+      '<div style="display: flex; gap: 10px; margin-top: 14px;">' +
+        '<button class="btn btn-primary" onclick="approveOrder(\'' + o._userId + '\',' + o._orderIdx + ')" style="flex: 1; background: linear-gradient(135deg, #10b981 0%, #059669 100%); box-shadow: 0 4px 14px rgba(16, 185, 129, 0.35);">Approve</button>' +
+        '<button class="btn btn-outline" onclick="rejectOrder(\'' + o._userId + '\',' + o._orderIdx + ')" style="flex: 1; background: var(--danger); color: white; border-color: var(--danger);">Reject</button>' +
+      '</div>' +
+    '</div>';
+  });
+
+  container.innerHTML = html;
+}
+
+function approveOrder(userId, orderIdx) {
+  var key = 'bm_orders_' + userId;
+  var orders = JSON.parse(localStorage.getItem(key) || '[]');
+  if (!orders[orderIdx] || orders[orderIdx].status !== 'pending_admin') {
+    showToast('Order not found or already processed', 'error');
+    return;
+  }
+
+  var order = orders[orderIdx];
+  order.status = 'mining';
+  order.paidAt = Date.now();
+  order.nextPayout = Date.now() + 24 * 60 * 60 * 1000;
+  order.approvedAt = Date.now();
+
+  localStorage.setItem(key, JSON.stringify(orders));
+
+  // Mark UTR as used
+  var usedUTRs = JSON.parse(localStorage.getItem('bm_used_utrs') || '[]');
+  usedUTRs.push(order.utr);
+  localStorage.setItem('bm_used_utrs', JSON.stringify(usedUTRs));
+
+  showToast('Order approved! Miner activated for user ' + userId, 'success');
+  renderAdminPending();
+
+  // If that user is currently logged in, start their payouts
+  if (Storage.getSession() === userId) {
+    scheduleDailyPayout(order);
+  }
+}
+
+function rejectOrder(userId, orderIdx) {
+  var key = 'bm_orders_' + userId;
+  var orders = JSON.parse(localStorage.getItem(key) || '[]');
+  if (!orders[orderIdx] || orders[orderIdx].status !== 'pending_admin') {
+    showToast('Order not found or already processed', 'error');
+    return;
+  }
+
+  orders[orderIdx].status = 'rejected';
+  orders[orderIdx].rejectedAt = Date.now();
+  localStorage.setItem(key, JSON.stringify(orders));
+
+  showToast('Order rejected for user ' + userId, 'info');
+  renderAdminPending();
+}
+
+// ==================== WITHDRAW ====================// ==================== WITHDRAW ====================
 function openWithdrawModal() {
   document.getElementById('withdraw-amount').value = '';
   document.getElementById('withdraw-modal').classList.add('show');
@@ -755,13 +1229,15 @@ function switchPlan(p) {
 }
 
 // ==================== BOTTOM NAV ====================
-var navPages = ['plan', 'my'];
+var navPages = ['plan', 'my', 'admin'];
 function switchNav(page) {
   navPages.forEach(function(p) {
     document.getElementById('nav-' + p).classList.toggle('active', p === page);
     var el = document.getElementById('page-' + p);
     if (el) el.classList.toggle('active', p === page);
   });
+  if (page === 'my') renderOrders();
+  if (page === 'admin') renderAdminPending();
 }
 
 // ==================== MODALS ====================
