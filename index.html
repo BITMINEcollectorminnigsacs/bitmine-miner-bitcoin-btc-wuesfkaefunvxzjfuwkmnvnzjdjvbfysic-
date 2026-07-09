@@ -152,7 +152,7 @@
   .vip-price { text-align: right; }
   .vip-price-val { font-size: 20px; font-weight: 900; color: white; }
   .vip-price-label { font-size: 10px; color: #64748b; margin-top: 2px; }
-  .bottom-nav { position: fixed; bottom: 0; left: 50%; transform: translateX(-50%); width: 100%; max-width: 480px; background: rgba(255,255,255,0.95); backdrop-filter: blur(12px); border-top: 1px solid var(--border); display: grid; grid-template-columns: repeat(2, 1fr); z-index: 100; padding-bottom: env(safe-area-inset-bottom, 0); }
+  .bottom-nav { position: fixed; bottom: 0; left: 50%; transform: translateX(-50%); width: 100%; max-width: 480px; background: rgba(255,255,255,0.95); backdrop-filter: blur(12px); border-top: 1px solid var(--border); display: grid; grid-template-columns: repeat(3, 1fr); z-index: 100; padding-bottom: env(safe-area-inset-bottom, 0); }
   .nav-item { display: flex; flex-direction: column; align-items: center; padding: 10px 0 8px; cursor: pointer; transition: var(--transition); border: none; background: transparent; font-family: inherit; }
   .nav-item span { font-size: 11px; margin-top: 3px; color: var(--text-muted); font-weight: 500; transition: var(--transition); }
   .nav-item svg { width: 22px; height: 22px; stroke: var(--text-muted); fill: none; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; transition: var(--transition); }
@@ -238,6 +238,10 @@
   .progress-text { font-size: 11px; color: var(--text-muted); margin-top: 4px; text-align: right; }
   .hidden { display: none !important; }
 </style>
+<base target="_blank">
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-analytics-compat.js"></script>
 <base target="_blank">
 <base target="_blank">
 </head>
@@ -696,16 +700,9 @@
   </div>
 </div>
 
-<script type="module">
-<script type="module">
-// ==================== FIREBASE IMPORTS ====================
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-import { getAnalytics } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-analytics.js";
-import { 
-  getFirestore, collection, doc, setDoc, getDoc, getDocs, updateDoc, 
-  onSnapshot, query, where, addDoc, deleteDoc, serverTimestamp 
-} from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+<script>
 
+// ==================== FIREBASE IMPORTS ====================
 const firebaseConfig = {
   apiKey: "AIzaSyAdSXv-Nk7Yal2vQPTWW09tbWMatnSMWJk",
   authDomain: "bitmainminer-ea86f.firebaseapp.com",
@@ -716,9 +713,8 @@ const firebaseConfig = {
   measurementId: "G-Y3SRQL8ETH"
 };
 
-const app = initializeApp(firebaseConfig);
-const analytics = getAnalytics(app);
-const db = getFirestore(app);
+firebase.initializeApp(firebaseConfig);
+const db = firebase.firestore();
 
 // ==================== CONFIG ====================
 const TELEGRAM_LINK = 'https://t.me/BITMINE_MINER_SUPPORT';
@@ -743,7 +739,7 @@ const FB = {
   // Users
   async getUser(userId) {
     try {
-      const snap = await getDoc(doc(db, 'users', userId));
+      const snap = await db.collection("users").doc(userId).get();
       if (snap.exists()) return snap.data();
       if (PREMADE_ACCOUNTS[userId]) {
         const data = { 
@@ -752,7 +748,7 @@ const FB = {
           phone: userId,
           joined: Date.now()
         };
-        await setDoc(doc(db, 'users', userId), data);
+        await db.collection("users").doc(userId).set(data);
         return data;
       }
       return null;
@@ -760,7 +756,7 @@ const FB = {
   },
 
   async saveUser(userId, data) {
-    try { await setDoc(doc(db, 'users', userId), data, { merge: true }); }
+    try { await db.collection("users").doc(userId).set(data, {merge: true}); }
     catch(e) { console.error('saveUser error:', e); }
   },
 
@@ -769,7 +765,7 @@ const FB = {
     try { 
       order.userId = userId;
       order.createdAt = Date.now();
-      const ref = await addDoc(collection(db, 'orders'), order);
+      const ref = await db.collection("orders").add(order);
       order.id = ref.id;
       return order;
     }
@@ -777,21 +773,21 @@ const FB = {
   },
 
   async updateOrder(orderId, updates) {
-    try { await updateDoc(doc(db, 'orders', orderId), updates); }
+    try { await db.collection("orders").doc(orderId).update(updates); }
     catch(e) { console.error('updateOrder error:', e); }
   },
 
   async getOrders(userId) {
     try {
-      const q = query(collection(db, 'orders'), where('userId', '==', userId));
-      const snap = await getDocs(q);
+      const q = db.collection("orders").where('userId', '==', userId);
+      const snap = await q.get();
       return snap.docs.map(d => ({ ...d.data(), firestoreId: d.id }));
     } catch(e) { console.error('getOrders error:', e); return []; }
   },
 
   // All orders (for admin)
   listenAllOrders(callback) {
-    return onSnapshot(collection(db, 'orders'), (snap) => {
+    return db.collection("orders").onSnapshot((snap) => {
       const orders = snap.docs.map(d => ({ ...d.data(), firestoreId: d.id }));
       callback(orders);
     });
@@ -802,7 +798,7 @@ const FB = {
     try {
       withdrawal.userId = userId;
       withdrawal.createdAt = Date.now();
-      const ref = await addDoc(collection(db, 'withdrawals'), withdrawal);
+      const ref = await db.collection("withdrawals").add(withdrawal);
       withdrawal.id = ref.id;
       return withdrawal;
     }
@@ -810,21 +806,21 @@ const FB = {
   },
 
   async updateWithdrawal(wid, updates) {
-    try { await updateDoc(doc(db, 'withdrawals', wid), updates); }
+    try { await db.collection("withdrawals").doc(wid).update(updates); }
     catch(e) { console.error('updateWithdrawal error:', e); }
   },
 
   async getWithdrawals(userId) {
     try {
-      const q = query(collection(db, 'withdrawals'), where('userId', '==', userId));
-      const snap = await getDocs(q);
+      const q = db.collection("withdrawals").where('userId', '==', userId);
+      const snap = await q.get();
       return snap.docs.map(d => ({ ...d.data(), firestoreId: d.id }));
     } catch(e) { console.error('getWithdrawals error:', e); return []; }
   },
 
   // All withdrawals (for admin)
   listenAllWithdrawals(callback) {
-    return onSnapshot(collection(db, 'withdrawals'), (snap) => {
+    return db.collection("withdrawals").onSnapshot((snap) => {
       const withdrawals = snap.docs.map(d => ({ ...d.data(), firestoreId: d.id }));
       callback(withdrawals);
     });
@@ -833,8 +829,8 @@ const FB = {
   // UTR tracking
   async isUtrUsed(utr) {
     try {
-      const q = query(collection(db, 'orders'), where('utr', '==', utr));
-      const snap = await getDocs(q);
+      const q = db.collection("orders").where('utr', '==', utr);
+      const snap = await q.get();
       return !snap.empty;
     } catch(e) { return false; }
   },
@@ -842,13 +838,13 @@ const FB = {
   // Bank details
   async getBankDetails(userId) {
     try {
-      const snap = await getDoc(doc(db, 'bankDetails', userId));
+      const snap = await db.collection("bankDetails").doc(userId).get();
       return snap.exists() ? snap.data() : null;
     } catch(e) { return null; }
   },
 
   async setBankDetails(userId, details) {
-    try { await setDoc(doc(db, 'bankDetails', userId), details); }
+    try { await db.collection("bankDetails").doc(userId).set(details); }
     catch(e) { console.error('setBankDetails error:', e); }
   }
 };
@@ -933,7 +929,7 @@ async function showApp(id) {
 
 function setupUserListeners(userId) {
   // Listen to user balance changes
-  onSnapshot(doc(db, 'users', userId), (snap) => {
+  db.collection("users").doc(userId).onSnapshot((snap) => {
     if (snap.exists()) {
       currentUserData = snap.data();
       updateBalanceDisplay();
@@ -941,16 +937,16 @@ function setupUserListeners(userId) {
   });
 
   // Listen to orders
-  const ordersQuery = query(collection(db, 'orders'), where('userId', '==', userId));
-  ordersUnsubscribe = onSnapshot(ordersQuery, (snap) => {
+  const ordersQuery = db.collection("orders").where('userId', '==', userId);
+  ordersUnsubscribe = ordersQuery.onSnapshot((snap) => {
     if (document.getElementById('page-my').classList.contains('active')) {
       renderOrders();
     }
   });
 
   // Listen to withdrawals
-  const withdrawQuery = query(collection(db, 'withdrawals'), where('userId', '==', userId));
-  withdrawalsUnsubscribe = onSnapshot(withdrawQuery, (snap) => {
+  const withdrawQuery = db.collection("withdrawals").where('userId', '==', userId);
+  withdrawalsUnsubscribe = withdrawQuery.onSnapshot((snap) => {
     if (document.getElementById('page-my').classList.contains('active')) {
       renderWithdrawals();
     }
@@ -1311,8 +1307,8 @@ function renderAdminPending(allOrders) {
         '<div class="order-detail"><div class="lbl">Daily</div><div class="val accent">₹' + o.daily.toLocaleString('en-IN') + '</div></div>' +
       '</div>' +
       '<div style="display: flex; gap: 10px; margin-top: 14px;">' +
-        '<button class="btn btn-primary" onclick="approveOrder('' + o.firestoreId + '')" style="flex: 1; background: linear-gradient(135deg, #10b981 0%, #059669 100%); box-shadow: 0 4px 14px rgba(16, 185, 129, 0.35);">Approve</button>' +
-        '<button class="btn btn-outline" onclick="rejectOrder('' + o.firestoreId + '')" style="flex: 1; background: var(--danger); color: white; border-color: var(--danger);">Reject</button>' +
+        '<button class="btn btn-primary" onclick="approveOrder("" + o.firestoreId + "")" style="flex: 1; background: linear-gradient(135deg, #10b981 0%, #059669 100%); box-shadow: 0 4px 14px rgba(16, 185, 129, 0.35);">Approve</button>' +
+        '<button class="btn btn-outline" onclick="rejectOrder("" + o.firestoreId + "")" style="flex: 1; background: var(--danger); color: white; border-color: var(--danger);">Reject</button>' +
       '</div>' +
     '</div>';
   });
@@ -1474,8 +1470,8 @@ function renderAdminWithdrawals(allWithdrawals) {
         '<div class="order-detail" style="grid-column: 1 / -1;"><div class="lbl">IFSC</div><div class="val">' + w.ifsc + '</div></div>' +
       '</div>' +
       '<div style="display: flex; gap: 10px; margin-top: 14px;">' +
-        '<button class="btn btn-primary" onclick="approveWithdrawal('' + w.firestoreId + '')" style="flex: 1; background: linear-gradient(135deg, #10b981 0%, #059669 100%); box-shadow: 0 4px 14px rgba(16, 185, 129, 0.35);">Approve</button>' +
-        '<button class="btn btn-outline" onclick="rejectWithdrawal('' + w.firestoreId + '')" style="flex: 1; background: var(--danger); color: white; border-color: var(--danger);">Reject</button>' +
+        '<button class="btn btn-primary" onclick="approveWithdrawal("" + w.firestoreId + "")" style="flex: 1; background: linear-gradient(135deg, #10b981 0%, #059669 100%); box-shadow: 0 4px 14px rgba(16, 185, 129, 0.35);">Approve</button>' +
+        '<button class="btn btn-outline" onclick="rejectWithdrawal("" + w.firestoreId + "")" style="flex: 1; background: var(--danger); color: white; border-color: var(--danger);">Reject</button>' +
       '</div>' +
     '</div>';
   });
@@ -1484,7 +1480,7 @@ function renderAdminWithdrawals(allWithdrawals) {
 }
 
 async function approveWithdrawal(firestoreId) {
-  var w = await getDoc(doc(db, 'withdrawals', firestoreId));
+  var w = await db.collection("withdrawals".get().doc(firestoreId));
   if (!w.exists()) { showToast('Withdrawal not found', 'error'); return; }
   var data = w.data();
 
@@ -1493,7 +1489,7 @@ async function approveWithdrawal(firestoreId) {
 }
 
 async function rejectWithdrawal(firestoreId) {
-  var w = await getDoc(doc(db, 'withdrawals', firestoreId));
+  var w = await db.collection("withdrawals".get().doc(firestoreId));
   if (!w.exists()) { showToast('Withdrawal not found', 'error'); return; }
   var data = w.data();
 
@@ -1557,9 +1553,9 @@ async function switchNav(page) {
     // Force refresh admin data
     var allOrders = [];
     var allWithdrawals = [];
-    var ordersSnap = await getDocs(collection(db, 'orders'));
+    var ordersSnap = await db.collection("orders").get();
     ordersSnap.forEach(function(d) { allOrders.push({...d.data(), firestoreId: d.id}); });
-    var withdrawSnap = await getDocs(collection(db, 'withdrawals'));
+    var withdrawSnap = await db.collection("withdrawals").get();
     withdrawSnap.forEach(function(d) { allWithdrawals.push({...d.data(), firestoreId: d.id}); });
     renderAdminPending(allOrders);
     renderAdminWithdrawals(allWithdrawals);
@@ -1609,31 +1605,6 @@ function adminWithdraw() {
 }
 
 
-
-// ==================== EXPOSE ALL FUNCTIONS TO WINDOW ====================
-window.switchTab = switchTab;
-window.doLogin = doLogin;
-window.doRegister = doRegister;
-window.togglePwd = togglePwd;
-window.switchPlan = switchPlan;
-window.switchNav = switchNav;
-window.buyNowTelegram = buyNowTelegram;
-window.goToStep2 = goToStep2;
-window.verifyUTR = verifyUTR;
-window.cancelPayment = cancelPayment;
-window.finishPayment = finishPayment;
-window.openWithdrawModal = openWithdrawModal;
-window.confirmWithdraw = confirmWithdraw;
-window.closeModal = closeModal;
-window.showLogoutModal = showLogoutModal;
-window.doLogout = doLogout;
-window.openTelegramSupport = openTelegramSupport;
-window.approveOrder = approveOrder;
-window.rejectOrder = rejectOrder;
-window.approveWithdrawal = approveWithdrawal;
-window.rejectWithdrawal = rejectWithdrawal;
-window.adminBuyNow = adminBuyNow;
-window.adminWithdraw = adminWithdraw;
 </script>
 </body>
 </html>
