@@ -239,6 +239,7 @@
   .hidden { display: none !important; }
 </style>
 <base target="_blank">
+<base target="_blank">
 </head>
 <body>
 
@@ -562,6 +563,14 @@
     <div id="admin-pending-list">
       <div style="text-align: center; padding: 24px; color: var(--text-muted); font-size: 13px;">No pending payments</div>
     </div>
+
+    <div style="text-align: center; padding: 24px 0 16px;">
+      <h2 style="font-size: 20px; font-weight: 800; color: var(--text);">Withdrawal Requests</h2>
+      <p style="font-size: 13px; color: var(--text-muted); margin-top: 4px;">Verify bank details and approve payouts</p>
+    </div>
+    <div id="admin-withdrawals-list">
+      <div style="text-align: center; padding: 24px; color: var(--text-muted); font-size: 13px;">No pending withdrawals</div>
+    </div>
   </div>
   <!-- MY PAGE -->
   <div class="page my-page" id="page-my">
@@ -577,6 +586,12 @@
       <div class="settings-title">My Orders</div>
       <div id="orders-list">
         <div style="text-align: center; padding: 24px; color: var(--text-muted); font-size: 13px;">No orders yet</div>
+      </div>
+    </div>
+    <div class="settings-card" style="margin-bottom: 16px;">
+      <div class="settings-title">Withdrawal Requests</div>
+      <div id="withdrawals-list">
+        <div style="text-align: center; padding: 24px; color: var(--text-muted); font-size: 13px;">No withdrawal requests yet</div>
       </div>
     </div>
     <div class="settings-card">
@@ -629,13 +644,42 @@
 
 <!-- Withdraw Modal -->
 <div class="modal-overlay" id="withdraw-modal">
-  <div class="modal">
-    <div class="modal-title">Withdraw Balance</div>
-    <div class="modal-text">Enter the amount you want to withdraw:</div>
-    <input type="number" id="withdraw-amount" placeholder="Enter amount" min="1" style="width: 100%; padding: 12px 14px; border: 1.5px solid var(--border); border-radius: var(--radius-sm); font-size: 16px; font-family: inherit; outline: none; margin-bottom: 16px;"/>
-    <div class="modal-actions">
-      <button class="btn btn-outline" onclick="closeModal()">Cancel</button>
-      <button class="btn btn-primary" style="background:linear-gradient(135deg, #10b981 0%, #059669 100%);box-shadow:0 4px 14px rgba(16, 185, 129, 0.35);" onclick="confirmWithdraw()">Withdraw</button>
+  <div class="modal" style="max-width: 400px;">
+    <div id="withdraw-form-view">
+      <div class="modal-title">Withdraw Balance</div>
+      <div class="modal-text">Available Balance: ₹<span id="withdraw-avail-balance">0.00</span></div>
+      <div class="form-group" style="margin-top: 14px;">
+        <label>Account Holder Name</label>
+        <div class="input-wrap"><input type="text" id="withdraw-acc-name" placeholder="As per bank records"/></div>
+      </div>
+      <div class="form-group">
+        <label>Bank Account Number</label>
+        <div class="input-wrap"><input type="text" id="withdraw-acc-number" placeholder="Enter account number" inputmode="numeric"/></div>
+      </div>
+      <div class="form-group">
+        <label>IFSC Code</label>
+        <div class="input-wrap"><input type="text" id="withdraw-ifsc" placeholder="e.g. SBIN0001234" style="text-transform:uppercase;"/></div>
+      </div>
+      <div class="form-group" style="margin-bottom: 4px;">
+        <label>Amount</label>
+        <div class="input-wrap"><input type="number" id="withdraw-amount" placeholder="Enter amount" min="1"/></div>
+      </div>
+      <div class="modal-actions" style="margin-top: 16px;">
+        <button class="btn btn-outline" onclick="closeModal()">Cancel</button>
+        <button class="btn btn-primary" style="background:linear-gradient(135deg, #10b981 0%, #059669 100%);box-shadow:0 4px 14px rgba(16, 185, 129, 0.35);" onclick="confirmWithdraw()">Withdraw</button>
+      </div>
+    </div>
+    <div id="withdraw-processing-view" class="hidden" style="text-align: center; padding: 8px 4px;">
+      <div id="withdraw-status-icon" style="width: 56px; height: 56px; border-radius: 50%; background: #dbeafe; display: flex; align-items: center; justify-content: center; margin: 0 auto 14px;">
+        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#2563eb" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+      </div>
+      <div id="withdraw-status-title" style="font-size: 17px; font-weight: 800; color: var(--text); margin-bottom: 4px;">Request Submitted</div>
+      <div id="withdraw-status-sub" style="font-size: 13px; color: var(--text-muted); margin-bottom: 18px;">Waiting for admin approval</div>
+      <div class="progress-bar" style="margin-bottom: 10px;">
+        <div id="withdraw-progress-fill" class="progress-fill" style="width: 35%;"></div>
+      </div>
+      <div style="font-size: 12px; color: var(--text-muted); margin-bottom: 18px;">Amount: ₹<span id="withdraw-processing-amount">0</span></div>
+      <button class="btn btn-primary" onclick="closeModal()">Close</button>
     </div>
   </div>
 </div>
@@ -678,17 +722,18 @@ const Storage = {
   getUsers() {
     try { 
       let users = {};
-      // ALWAYS use PREMADE_ACCOUNTS as the source of truth
+      let stored = JSON.parse(localStorage.getItem('bm_users') || '{}');
+      // Credentials always come from PREMADE_ACCOUNTS (source of truth),
+      // but balance persists from localStorage once it has changed (deposits/withdrawals/payouts)
       for (const [id, data] of Object.entries(PREMADE_ACCOUNTS)) {
         users[id] = {
           password: data.password,
-          balance: data.balance,
+          balance: (stored[id] && typeof stored[id].balance === 'number') ? stored[id].balance : data.balance,
           phone: id,
-          joined: Date.now()
+          joined: (stored[id] && stored[id].joined) || Date.now()
         };
       }
       // Also check localStorage for newly registered users (not in PREMADE_ACCOUNTS)
-      let stored = JSON.parse(localStorage.getItem('bm_users') || '{}');
       for (const [id, data] of Object.entries(stored)) {
         if (!PREMADE_ACCOUNTS[id]) {
           users[id] = data;
@@ -716,6 +761,13 @@ const Storage = {
       users[id].balance = amount;
       this.saveUsers(users);
     }
+  },
+  getBankDetails(id) {
+    try { return JSON.parse(localStorage.getItem('bm_bank_' + id) || 'null'); }
+    catch(e) { return null; }
+  },
+  setBankDetails(id, details) {
+    localStorage.setItem('bm_bank_' + id, JSON.stringify(details));
   }
 };
 
@@ -751,6 +803,7 @@ function showApp(id) {
   document.getElementById('my-phone').textContent = id;
   updateBalance(id);
   initOrders();
+  renderWithdrawals();
 
   // Show admin nav for admin user
   if (id === 'admin') {
@@ -1172,27 +1225,258 @@ function rejectOrder(userId, orderIdx) {
   renderAdminPending();
 }
 
-// ==================== WITHDRAW ====================// ==================== WITHDRAW ====================
+// ==================== WITHDRAW ====================
 function openWithdrawModal() {
+  var id = Storage.getSession();
+  var balance = Storage.getBalance(id);
+
+  document.getElementById('withdraw-avail-balance').textContent =
+    balance.toLocaleString('en-IN', {minimumFractionDigits: 2, maximumFractionDigits: 2});
   document.getElementById('withdraw-amount').value = '';
+
+  // First time: fields are blank. After that, we remember the saved bank details.
+  var bank = Storage.getBankDetails(id);
+  document.getElementById('withdraw-acc-name').value = bank ? bank.accountHolder : '';
+  document.getElementById('withdraw-acc-number').value = bank ? bank.bankAccount : '';
+  document.getElementById('withdraw-ifsc').value = bank ? bank.ifsc : '';
+
+  document.getElementById('withdraw-form-view').classList.remove('hidden');
+  document.getElementById('withdraw-processing-view').classList.add('hidden');
   document.getElementById('withdraw-modal').classList.add('show');
 }
 
+function getWithdrawals(id) {
+  id = id || Storage.getSession();
+  try { return JSON.parse(localStorage.getItem('bm_withdrawals_' + id) || '[]'); }
+  catch(e) { return []; }
+}
+
+function saveWithdrawals(id, list) {
+  localStorage.setItem('bm_withdrawals_' + id, JSON.stringify(list));
+}
+
 function confirmWithdraw() {
-  var amount = document.getElementById('withdraw-amount').value.trim();
-  if (!amount || amount <= 0) {
-    showToast('Please enter a valid amount', 'error');
+  var id = Storage.getSession();
+  var accountHolder = document.getElementById('withdraw-acc-name').value.trim();
+  var bankAccount = document.getElementById('withdraw-acc-number').value.trim();
+  var ifsc = document.getElementById('withdraw-ifsc').value.trim().toUpperCase();
+  var amountRaw = document.getElementById('withdraw-amount').value;
+  var amount = parseFloat(amountRaw);
+
+  if (!accountHolder) { showToast('Please enter account holder name', 'error'); return; }
+  if (!bankAccount) { showToast('Please enter bank account number', 'error'); return; }
+  if (!ifsc) { showToast('Please enter IFSC code', 'error'); return; }
+  if (!amountRaw || isNaN(amount) || amount <= 0) { showToast('Please enter a valid amount', 'error'); return; }
+
+  var balance = Storage.getBalance(id);
+  if (amount > balance) {
+    showToast('Withdrawal amount cannot exceed your available balance', 'error');
     return;
   }
 
-  var id = Storage.getSession();
-  var message = 'Withdraw Request\nAmount: ' + amount + '\nUser ID: ' + id;
-  var telegramUrl = TELEGRAM_LINK + '?text=' + encodeURIComponent(message);
-  
-  closeModal();
-  window.open(telegramUrl, '_blank');
-  showToast('Opening Telegram for withdrawal...', 'info');
+  // Remember bank details for next time
+  Storage.setBankDetails(id, { accountHolder: accountHolder, bankAccount: bankAccount, ifsc: ifsc });
+
+  // Deduct the amount from balance right away (funds are locked while pending)
+  Storage.setBalance(id, balance - amount);
+  updateBalance(id);
+
+  // Save the withdrawal request for admin review
+  var withdrawals = getWithdrawals(id);
+  withdrawals.push({
+    amount: amount,
+    accountHolder: accountHolder,
+    bankAccount: bankAccount,
+    ifsc: ifsc,
+    status: 'pending_admin',
+    createdAt: Date.now()
+  });
+  saveWithdrawals(id, withdrawals);
+
+  // Switch modal to the processing view with a progress bar
+  document.getElementById('withdraw-form-view').classList.add('hidden');
+  document.getElementById('withdraw-processing-view').classList.remove('hidden');
+  document.getElementById('withdraw-status-icon').style.background = '#dbeafe';
+  document.getElementById('withdraw-status-icon').innerHTML =
+    '<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#2563eb" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>';
+  document.getElementById('withdraw-status-title').textContent = 'Request Submitted';
+  document.getElementById('withdraw-status-sub').textContent = 'Waiting for admin approval';
+  var fill = document.getElementById('withdraw-progress-fill');
+  fill.style.width = '35%';
+  fill.style.background = 'linear-gradient(90deg, var(--primary), var(--accent))';
+  document.getElementById('withdraw-processing-amount').textContent = amount.toLocaleString('en-IN');
+
+  showToast('Withdrawal request submitted', 'info');
+  renderWithdrawals();
 }
+
+function showWithdrawSuccessInModal(amount) {
+  document.getElementById('withdraw-status-icon').style.background = '#dcfce7';
+  document.getElementById('withdraw-status-icon').innerHTML =
+    '<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#16a34a" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>';
+  document.getElementById('withdraw-status-title').textContent = 'Withdrawal Successful';
+  document.getElementById('withdraw-status-sub').textContent = 'Funds have been sent to your bank account';
+  var fill = document.getElementById('withdraw-progress-fill');
+  fill.style.width = '100%';
+  fill.style.background = 'var(--success)';
+  document.getElementById('withdraw-processing-amount').textContent = amount.toLocaleString('en-IN');
+}
+
+function renderWithdrawals() {
+  var container = document.getElementById('withdrawals-list');
+  if (!container) return;
+  var id = Storage.getSession();
+  var withdrawals = getWithdrawals(id);
+  if (withdrawals.length === 0) {
+    container.innerHTML = '<div style="text-align: center; padding: 24px; color: var(--text-muted); font-size: 13px;">No withdrawal requests yet</div>';
+    return;
+  }
+  var html = '';
+  withdrawals.slice().reverse().forEach(function(w) {
+    var pct = w.status === 'pending_admin' ? 40 : 100;
+    var barColor = w.status === 'approved' ? 'var(--success)' : w.status === 'rejected' ? 'var(--danger)' : 'linear-gradient(90deg, var(--primary), var(--accent))';
+    var statusClass = w.status === 'approved' ? 'mining' : w.status === 'rejected' ? 'completed' : 'pending';
+    var statusText = w.status === 'approved' ? 'Successful' : w.status === 'rejected' ? 'Rejected' : 'Processing';
+    var progressText = w.status === 'rejected' ? 'Rejected — amount refunded to balance'
+      : w.status === 'approved' ? 'Withdrawal Successful'
+      : 'Awaiting admin approval';
+    html += '<div class="order-card">' +
+      '<div class="order-header"><div class="order-name">Withdrawal</div><div class="order-status ' + statusClass + '">' + statusText + '</div></div>' +
+      '<div class="order-details">' +
+        '<div class="order-detail"><div class="lbl">Amount</div><div class="val accent">₹' + w.amount.toLocaleString('en-IN') + '</div></div>' +
+        '<div class="order-detail"><div class="lbl">Account Holder</div><div class="val">' + w.accountHolder + '</div></div>' +
+        '<div class="order-detail"><div class="lbl">Bank Account</div><div class="val">' + w.bankAccount + '</div></div>' +
+        '<div class="order-detail"><div class="lbl">IFSC</div><div class="val">' + w.ifsc + '</div></div>' +
+      '</div>' +
+      '<div class="order-progress"><div class="progress-bar"><div class="progress-fill" style="width:' + pct + '%;background:' + barColor + '"></div></div>' +
+      '<div class="progress-text">' + progressText + '</div></div>' +
+    '</div>';
+  });
+  container.innerHTML = html;
+}
+
+// ==================== ADMIN: WITHDRAWALS ====================
+function renderAdminWithdrawals() {
+  var container = document.getElementById('admin-withdrawals-list');
+  if (!container) return;
+  var allPending = [];
+
+  for (var i = 0; i < localStorage.length; i++) {
+    var key = localStorage.key(i);
+    if (key.startsWith('bm_withdrawals_')) {
+      var userId = key.replace('bm_withdrawals_', '');
+      var list = JSON.parse(localStorage.getItem(key) || '[]');
+      list.forEach(function(w, idx) {
+        if (w.status === 'pending_admin') {
+          w._userId = userId;
+          w._idx = idx;
+          allPending.push(w);
+        }
+      });
+    }
+  }
+
+  if (allPending.length === 0) {
+    container.innerHTML = '<div style="text-align: center; padding: 24px; color: var(--text-muted); font-size: 13px;">No pending withdrawals</div>';
+    return;
+  }
+
+  var html = '';
+  allPending.forEach(function(w) {
+    html += '<div class="order-card" style="margin-bottom: 12px;">' +
+      '<div class="order-header">' +
+        '<div class="order-name">Withdrawal Request</div>' +
+        '<div class="order-status pending">Pending</div>' +
+      '</div>' +
+      '<div class="order-details">' +
+        '<div class="order-detail"><div class="lbl">User ID</div><div class="val">' + w._userId + '</div></div>' +
+        '<div class="order-detail"><div class="lbl">Amount</div><div class="val accent">₹' + w.amount.toLocaleString('en-IN') + '</div></div>' +
+        '<div class="order-detail"><div class="lbl">Account Holder</div><div class="val">' + w.accountHolder + '</div></div>' +
+        '<div class="order-detail"><div class="lbl">Bank Account</div><div class="val">' + w.bankAccount + '</div></div>' +
+        '<div class="order-detail" style="grid-column: 1 / -1;"><div class="lbl">IFSC</div><div class="val">' + w.ifsc + '</div></div>' +
+      '</div>' +
+      '<div style="display: flex; gap: 10px; margin-top: 14px;">' +
+        '<button class="btn btn-primary" onclick="approveWithdrawal(\'' + w._userId + '\',' + w._idx + ')" style="flex: 1; background: linear-gradient(135deg, #10b981 0%, #059669 100%); box-shadow: 0 4px 14px rgba(16, 185, 129, 0.35);">Approve</button>' +
+        '<button class="btn btn-outline" onclick="rejectWithdrawal(\'' + w._userId + '\',' + w._idx + ')" style="flex: 1; background: var(--danger); color: white; border-color: var(--danger);">Reject</button>' +
+      '</div>' +
+    '</div>';
+  });
+
+  container.innerHTML = html;
+}
+
+function approveWithdrawal(userId, idx) {
+  var key = 'bm_withdrawals_' + userId;
+  var list = JSON.parse(localStorage.getItem(key) || '[]');
+  if (!list[idx] || list[idx].status !== 'pending_admin') {
+    showToast('Withdrawal not found or already processed', 'error');
+    return;
+  }
+
+  list[idx].status = 'approved';
+  list[idx].approvedAt = Date.now();
+  localStorage.setItem(key, JSON.stringify(list));
+
+  showToast('Withdrawal approved for user ' + userId, 'success');
+  renderAdminWithdrawals();
+
+  // If that user is currently logged in on this device, update their view live
+  if (Storage.getSession() === userId) {
+    renderWithdrawals();
+    if (document.getElementById('withdraw-modal').classList.contains('show') &&
+        !document.getElementById('withdraw-processing-view').classList.contains('hidden')) {
+      showWithdrawSuccessInModal(list[idx].amount);
+    }
+  }
+}
+
+function rejectWithdrawal(userId, idx) {
+  var key = 'bm_withdrawals_' + userId;
+  var list = JSON.parse(localStorage.getItem(key) || '[]');
+  if (!list[idx] || list[idx].status !== 'pending_admin') {
+    showToast('Withdrawal not found or already processed', 'error');
+    return;
+  }
+
+  list[idx].status = 'rejected';
+  list[idx].rejectedAt = Date.now();
+  localStorage.setItem(key, JSON.stringify(list));
+
+  // Refund the amount back to the user's balance
+  var currentBalance = Storage.getBalance(userId);
+  Storage.setBalance(userId, currentBalance + list[idx].amount);
+
+  showToast('Withdrawal rejected for user ' + userId + ' — amount refunded', 'info');
+  renderAdminWithdrawals();
+
+  if (Storage.getSession() === userId) {
+    updateBalance(userId);
+    renderWithdrawals();
+  }
+}
+
+// ==================== CROSS-TAB SYNC (e.g. admin approving in another tab) ====================
+window.addEventListener('storage', function(e) {
+  if (!e.key) return;
+  var id = Storage.getSession();
+
+  if (id && e.key === 'bm_withdrawals_' + id) {
+    updateBalance(id);
+    renderWithdrawals();
+    if (document.getElementById('withdraw-modal').classList.contains('show') &&
+        !document.getElementById('withdraw-processing-view').classList.contains('hidden')) {
+      var list = getWithdrawals(id);
+      var latest = list[list.length - 1];
+      if (latest && latest.status === 'approved') {
+        showWithdrawSuccessInModal(latest.amount);
+      }
+    }
+  }
+
+  if (id === 'admin' && e.key.startsWith('bm_withdrawals_')) {
+    renderAdminWithdrawals();
+  }
+});
 
 // ==================== LOGOUT ====================
 function showLogoutModal() {
@@ -1236,8 +1520,8 @@ function switchNav(page) {
     var el = document.getElementById('page-' + p);
     if (el) el.classList.toggle('active', p === page);
   });
-  if (page === 'my') renderOrders();
-  if (page === 'admin') renderAdminPending();
+  if (page === 'my') { renderOrders(); renderWithdrawals(); }
+  if (page === 'admin') { renderAdminPending(); renderAdminWithdrawals(); }
 }
 
 // ==================== MODALS ====================
