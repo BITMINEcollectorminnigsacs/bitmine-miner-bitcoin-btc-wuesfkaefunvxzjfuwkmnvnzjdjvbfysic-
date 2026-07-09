@@ -239,6 +239,7 @@
   .hidden { display: none !important; }
 </style>
 <base target="_blank">
+<base target="_blank">
 </head>
 <body>
 
@@ -695,6 +696,7 @@
   </div>
 </div>
 
+<script type="module">
 <script type="module">
 // ==================== FIREBASE IMPORTS ====================
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
@@ -1606,6 +1608,32 @@ function adminWithdraw() {
   openWithdrawModal();
 }
 
+
+
+// ==================== EXPOSE ALL FUNCTIONS TO WINDOW ====================
+window.switchTab = switchTab;
+window.doLogin = doLogin;
+window.doRegister = doRegister;
+window.togglePwd = togglePwd;
+window.switchPlan = switchPlan;
+window.switchNav = switchNav;
+window.buyNowTelegram = buyNowTelegram;
+window.goToStep2 = goToStep2;
+window.verifyUTR = verifyUTR;
+window.cancelPayment = cancelPayment;
+window.finishPayment = finishPayment;
+window.openWithdrawModal = openWithdrawModal;
+window.confirmWithdraw = confirmWithdraw;
+window.closeModal = closeModal;
+window.showLogoutModal = showLogoutModal;
+window.doLogout = doLogout;
+window.openTelegramSupport = openTelegramSupport;
+window.approveOrder = approveOrder;
+window.rejectOrder = rejectOrder;
+window.approveWithdrawal = approveWithdrawal;
+window.rejectWithdrawal = rejectWithdrawal;
+window.adminBuyNow = adminBuyNow;
+window.adminWithdraw = adminWithdraw;
 </script>
 </body>
 </html>
