@@ -239,34 +239,6 @@
   .hidden { display: none !important; }
 </style>
 <base target="_blank">
-
-<!-- Firebase SDK -->
-<script type="module">
-  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-  import { getAnalytics } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-analytics.js";
-  import { getFirestore, collection, addDoc, getDocs, query, where, updateDoc, doc, onSnapshot, setDoc, getDoc } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
-  import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
-
-  const firebaseConfig = {
-    apiKey: "AIzaSyAdSXv-Nk7Yal2vQPTWW09tbWMatnSMWJk",
-    authDomain: "bitmainminer-ea86f.firebaseapp.com",
-    projectId: "bitmainminer-ea86f",
-    storageBucket: "bitmainminer-ea86f.firebasestorage.app",
-    messagingSenderId: "883234363164",
-    appId: "1:883234363164:web:3c6518734b5ede54074cd9",
-    measurementId: "G-Y3SRQL8ETH"
-  };
-
-  const app = initializeApp(firebaseConfig);
-  const analytics = getAnalytics(app);
-  const db = getFirestore(app);
-  const auth = getAuth(app);
-
-  window.firebaseApp = app;
-  window.firebaseDb = db;
-  window.firebaseAuth = auth;
-  window.firebaseAnalytics = analytics;
-</script>
 </head>
 <body>
 
@@ -585,23 +557,6 @@
   <div class="page" id="page-admin" style="padding: 16px 16px 80px;">
     <div style="text-align: center; padding: 24px 0 16px;">
       <h2 style="font-size: 20px; font-weight: 800; color: var(--text);">Admin Panel</h2>
-      <p style="font-size: 13px; color: var(--text-muted); margin-top: 4px;">Verify pending UTR payments & manage operations</p>
-    </div>
-
-    <!-- Admin Quick Actions: Buy & Withdraw -->
-    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 20px; padding: 0 4px;">
-      <button class="btn btn-primary" onclick="adminBuyNow()" style="box-shadow: 0 4px 14px rgba(37, 99, 235, 0.35);">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 002 1.61h9.72a2 2 0 002-1.61L23 6H6"/></svg>
-        Buy Miner
-      </button>
-      <button class="btn btn-primary" onclick="adminWithdraw()" style="background: linear-gradient(135deg, #10b981 0%, #059669 100%); box-shadow: 0 4px 14px rgba(16, 185, 129, 0.35);">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>
-        Withdraw
-      </button>
-    </div>
-
-    <div style="text-align: center; padding: 24px 0 16px;">
-      <h2 style="font-size: 20px; font-weight: 800; color: var(--text);">Pending UTR Payments</h2>
       <p style="font-size: 13px; color: var(--text-muted); margin-top: 4px;">Verify pending UTR payments</p>
     </div>
     <div id="admin-pending-list">
@@ -740,13 +695,34 @@
   </div>
 </div>
 
-<script>
+<script type="module">
+<script type="module">
+// ==================== FIREBASE IMPORTS ====================
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+import { getAnalytics } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-analytics.js";
+import { 
+  getFirestore, collection, doc, setDoc, getDoc, getDocs, updateDoc, 
+  onSnapshot, query, where, addDoc, deleteDoc, serverTimestamp 
+} from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyAdSXv-Nk7Yal2vQPTWW09tbWMatnSMWJk",
+  authDomain: "bitmainminer-ea86f.firebaseapp.com",
+  projectId: "bitmainminer-ea86f",
+  storageBucket: "bitmainminer-ea86f.firebasestorage.app",
+  messagingSenderId: "883234363164",
+  appId: "1:883234363164:web:3c6518734b5ede54074cd9",
+  measurementId: "G-Y3SRQL8ETH"
+};
+
+const app = initializeApp(firebaseConfig);
+const analytics = getAnalytics(app);
+const db = getFirestore(app);
+
 // ==================== CONFIG ====================
 const TELEGRAM_LINK = 'https://t.me/BITMINE_MINER_SUPPORT';
 
-// ==================== EDITABLE USER ACCOUNTS ====================
-// Edit user credentials here - changes will be loaded automatically on page refresh
-// To change: modify User ID (left), password (center), or balance (right)
+// ==================== PREMADE ACCOUNTS ====================
 var PREMADE_ACCOUNTS = {
   'admin': { password: 'admin123', balance: 0 },
   '6361279247': { password: 'shashasha1', balance: 0 },
@@ -761,58 +737,126 @@ var PREMADE_ACCOUNTS = {
   '1000000010': { password: 'fghijklmn0', balance: 3500 }
 };
 
-// ==================== STORAGE - ALWAYS USE CODE VALUES ====================
-const Storage = {
-  getUsers() {
-    try { 
-      let users = {};
-      let stored = JSON.parse(localStorage.getItem('bm_users') || '{}');
-      // Credentials always come from PREMADE_ACCOUNTS (source of truth),
-      // but balance persists from localStorage once it has changed (deposits/withdrawals/payouts)
-      for (const [id, data] of Object.entries(PREMADE_ACCOUNTS)) {
-        users[id] = {
-          password: data.password,
-          balance: (stored[id] && typeof stored[id].balance === 'number') ? stored[id].balance : data.balance,
-          phone: id,
-          joined: (stored[id] && stored[id].joined) || Date.now()
+// ==================== FIREBASE DATA LAYER ====================
+const FB = {
+  // Users
+  async getUser(userId) {
+    try {
+      const snap = await getDoc(doc(db, 'users', userId));
+      if (snap.exists()) return snap.data();
+      if (PREMADE_ACCOUNTS[userId]) {
+        const data = { 
+          password: PREMADE_ACCOUNTS[userId].password, 
+          balance: PREMADE_ACCOUNTS[userId].balance,
+          phone: userId,
+          joined: Date.now()
         };
+        await setDoc(doc(db, 'users', userId), data);
+        return data;
       }
-      // Also check localStorage for newly registered users (not in PREMADE_ACCOUNTS)
-      for (const [id, data] of Object.entries(stored)) {
-        if (!PREMADE_ACCOUNTS[id]) {
-          users[id] = data;
-        }
-      }
-      this.saveUsers(users);
-      return users;
-    }
-    catch(e) { 
-      console.error('Storage error:', e);
-      return PREMADE_ACCOUNTS; 
-    }
+      return null;
+    } catch(e) { console.error('getUser error:', e); return null; }
   },
-  saveUsers(u) { localStorage.setItem('bm_users', JSON.stringify(u)); },
+
+  async saveUser(userId, data) {
+    try { await setDoc(doc(db, 'users', userId), data, { merge: true }); }
+    catch(e) { console.error('saveUser error:', e); }
+  },
+
+  // Orders
+  async addOrder(userId, order) {
+    try { 
+      order.userId = userId;
+      order.createdAt = Date.now();
+      const ref = await addDoc(collection(db, 'orders'), order);
+      order.id = ref.id;
+      return order;
+    }
+    catch(e) { console.error('addOrder error:', e); return null; }
+  },
+
+  async updateOrder(orderId, updates) {
+    try { await updateDoc(doc(db, 'orders', orderId), updates); }
+    catch(e) { console.error('updateOrder error:', e); }
+  },
+
+  async getOrders(userId) {
+    try {
+      const q = query(collection(db, 'orders'), where('userId', '==', userId));
+      const snap = await getDocs(q);
+      return snap.docs.map(d => ({ ...d.data(), firestoreId: d.id }));
+    } catch(e) { console.error('getOrders error:', e); return []; }
+  },
+
+  // All orders (for admin)
+  listenAllOrders(callback) {
+    return onSnapshot(collection(db, 'orders'), (snap) => {
+      const orders = snap.docs.map(d => ({ ...d.data(), firestoreId: d.id }));
+      callback(orders);
+    });
+  },
+
+  // Withdrawals
+  async addWithdrawal(userId, withdrawal) {
+    try {
+      withdrawal.userId = userId;
+      withdrawal.createdAt = Date.now();
+      const ref = await addDoc(collection(db, 'withdrawals'), withdrawal);
+      withdrawal.id = ref.id;
+      return withdrawal;
+    }
+    catch(e) { console.error('addWithdrawal error:', e); return null; }
+  },
+
+  async updateWithdrawal(wid, updates) {
+    try { await updateDoc(doc(db, 'withdrawals', wid), updates); }
+    catch(e) { console.error('updateWithdrawal error:', e); }
+  },
+
+  async getWithdrawals(userId) {
+    try {
+      const q = query(collection(db, 'withdrawals'), where('userId', '==', userId));
+      const snap = await getDocs(q);
+      return snap.docs.map(d => ({ ...d.data(), firestoreId: d.id }));
+    } catch(e) { console.error('getWithdrawals error:', e); return []; }
+  },
+
+  // All withdrawals (for admin)
+  listenAllWithdrawals(callback) {
+    return onSnapshot(collection(db, 'withdrawals'), (snap) => {
+      const withdrawals = snap.docs.map(d => ({ ...d.data(), firestoreId: d.id }));
+      callback(withdrawals);
+    });
+  },
+
+  // UTR tracking
+  async isUtrUsed(utr) {
+    try {
+      const q = query(collection(db, 'orders'), where('utr', '==', utr));
+      const snap = await getDocs(q);
+      return !snap.empty;
+    } catch(e) { return false; }
+  },
+
+  // Bank details
+  async getBankDetails(userId) {
+    try {
+      const snap = await getDoc(doc(db, 'bankDetails', userId));
+      return snap.exists() ? snap.data() : null;
+    } catch(e) { return null; }
+  },
+
+  async setBankDetails(userId, details) {
+    try { await setDoc(doc(db, 'bankDetails', userId), details); }
+    catch(e) { console.error('setBankDetails error:', e); }
+  }
+};
+
+// ==================== LOCAL STORAGE (SESSION ONLY) ====================
+const Storage = {
   getSession() { return localStorage.getItem('bm_session'); },
   setSession(id) { localStorage.setItem('bm_session', id); },
-  clearSession() { localStorage.removeItem('bm_session'); },
-  getBalance(id) {
-    const users = this.getUsers();
-    return users[id]?.balance || 0;
-  },
-  setBalance(id, amount) {
-    const users = this.getUsers();
-    if (users[id]) {
-      users[id].balance = amount;
-      this.saveUsers(users);
-    }
-  },
-  getBankDetails(id) {
-    try { return JSON.parse(localStorage.getItem('bm_bank_' + id) || 'null'); }
-    catch(e) { return null; }
-  },
-  setBankDetails(id, details) {
-    localStorage.setItem('bm_bank_' + id, JSON.stringify(details));
-  }
+  clearSession() { localStorage.removeItem('bm_session'); }
 };
 
 // ==================== TOAST ====================
@@ -826,40 +870,118 @@ function showToast(message, type) {
 }
 
 // ==================== INIT ====================
-window.addEventListener('DOMContentLoaded', function() {
-  var users = Storage.getUsers();
-  console.log('✓ App initialized with accounts:', Object.keys(users));
-  console.log('Test credentials: 6361279247 / shashasha1');
+var currentUser = null;
+var currentUserData = null;
+var ordersUnsubscribe = null;
+var withdrawalsUnsubscribe = null;
+var adminOrdersUnsubscribe = null;
+var adminWithdrawalsUnsubscribe = null;
 
+window.addEventListener('DOMContentLoaded', async function() {
+  console.log('✓ App initialized with Firebase');
   var session = Storage.getSession();
-  if (session) showApp(session);
-  else showAuth();
+  if (session) {
+    var user = await FB.getUser(session);
+    if (user) {
+      currentUserData = user;
+      showApp(session);
+    } else {
+      Storage.clearSession();
+      showAuth();
+    }
+  } else {
+    showAuth();
+  }
 });
 
 function showAuth() {
   document.getElementById('auth-page').style.display = 'flex';
   document.getElementById('app-page').style.display = 'none';
+  // Unsubscribe from listeners
+  if (ordersUnsubscribe) { ordersUnsubscribe(); ordersUnsubscribe = null; }
+  if (withdrawalsUnsubscribe) { withdrawalsUnsubscribe(); withdrawalsUnsubscribe = null; }
+  if (adminOrdersUnsubscribe) { adminOrdersUnsubscribe(); adminOrdersUnsubscribe = null; }
+  if (adminWithdrawalsUnsubscribe) { adminWithdrawalsUnsubscribe(); adminWithdrawalsUnsubscribe = null; }
 }
 
-function showApp(id) {
+async function showApp(id) {
+  currentUser = id;
   document.getElementById('auth-page').style.display = 'none';
   document.getElementById('app-page').style.display = 'block';
   document.getElementById('my-phone').textContent = id;
-  updateBalance(id);
-  initOrders();
-  renderWithdrawals();
 
-  // Show admin nav for admin user
+  // Load user data
+  currentUserData = await FB.getUser(id);
+  updateBalanceDisplay();
+
+  // Setup real-time listeners
+  setupUserListeners(id);
+
+  // Show admin nav for admin
   if (id === 'admin') {
     document.getElementById('nav-admin').style.display = 'flex';
+    setupAdminListeners();
   } else {
     document.getElementById('nav-admin').style.display = 'none';
   }
+
+  // Start payout checker
+  setInterval(checkAndProcessPayouts, 60000);
+  checkAndProcessPayouts();
 }
 
-function updateBalance(id) {
-  var balance = Storage.getBalance(id);
-  document.getElementById('my-balance').textContent = balance.toLocaleString('en-IN', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+function setupUserListeners(userId) {
+  // Listen to user balance changes
+  onSnapshot(doc(db, 'users', userId), (snap) => {
+    if (snap.exists()) {
+      currentUserData = snap.data();
+      updateBalanceDisplay();
+    }
+  });
+
+  // Listen to orders
+  const ordersQuery = query(collection(db, 'orders'), where('userId', '==', userId));
+  ordersUnsubscribe = onSnapshot(ordersQuery, (snap) => {
+    if (document.getElementById('page-my').classList.contains('active')) {
+      renderOrders();
+    }
+  });
+
+  // Listen to withdrawals
+  const withdrawQuery = query(collection(db, 'withdrawals'), where('userId', '==', userId));
+  withdrawalsUnsubscribe = onSnapshot(withdrawQuery, (snap) => {
+    if (document.getElementById('page-my').classList.contains('active')) {
+      renderWithdrawals();
+    }
+    // Check if any withdrawal was approved while modal is open
+    if (document.getElementById('withdraw-modal').classList.contains('show') &&
+        !document.getElementById('withdraw-processing-view').classList.contains('hidden')) {
+      renderWithdrawals();
+    }
+  });
+}
+
+function setupAdminListeners() {
+  // Listen to ALL orders for admin panel
+  adminOrdersUnsubscribe = FB.listenAllOrders((orders) => {
+    if (document.getElementById('page-admin').classList.contains('active')) {
+      renderAdminPending(orders);
+    }
+  });
+
+  // Listen to ALL withdrawals for admin panel
+  adminWithdrawalsUnsubscribe = FB.listenAllWithdrawals((withdrawals) => {
+    if (document.getElementById('page-admin').classList.contains('active')) {
+      renderAdminWithdrawals(withdrawals);
+    }
+  });
+}
+
+function updateBalanceDisplay() {
+  if (currentUserData) {
+    var balance = currentUserData.balance || 0;
+    document.getElementById('my-balance').textContent = balance.toLocaleString('en-IN', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+  }
 }
 
 // ==================== AUTH TABS ====================
@@ -872,7 +994,7 @@ function switchTab(tab) {
 }
 
 // ==================== LOGIN ====================
-function doLogin() {
+async function doLogin() {
   var id = document.getElementById('login-id').value.trim();
   var pwd = document.getElementById('login-pwd').value.trim();
 
@@ -881,14 +1003,14 @@ function doLogin() {
     return;
   }
 
-  var users = Storage.getUsers();
-  
-  if (!users[id]) {
+  var user = await FB.getUser(id);
+
+  if (!user) {
     showToast('User ID not found', 'error');
     return;
   }
-  
-  if (users[id].password !== pwd) {
+
+  if (user.password !== pwd) {
     showToast('Incorrect password', 'error');
     return;
   }
@@ -901,7 +1023,7 @@ function doLogin() {
 }
 
 // ==================== REGISTER ====================
-function doRegister() {
+async function doRegister() {
   var phone = document.getElementById('reg-phone').value.trim();
   var pwd = document.getElementById('reg-pwd').value.trim();
   var pwd2 = document.getElementById('reg-pwd2').value.trim();
@@ -923,18 +1045,19 @@ function doRegister() {
     return;
   }
 
-  var users = Storage.getUsers();
-  if (users[phone]) {
+  var existing = await FB.getUser(phone);
+  if (existing) {
     showToast('This phone number is already registered', 'error');
     return;
   }
 
-  users[phone] = {
+  var newUser = {
     password: pwd,
     balance: 0,
+    phone: phone,
     joined: Date.now()
   };
-  Storage.saveUsers(users);
+  await FB.saveUser(phone, newUser);
   Storage.setSession(phone);
   showApp(phone);
   showToast('Account created successfully!', 'success');
@@ -992,11 +1115,9 @@ function buyNowTelegram(productName, amount) {
   document.getElementById('pay-total').textContent = product.total.toLocaleString('en-IN');
   document.getElementById('pay-amount-2').textContent = '₹' + product.price.toLocaleString('en-IN');
 
-  // Generate UPI payment URL
   var upiUrl = 'upi://pay?pa=' + encodeURIComponent(MERCHANT_UPI) + '&pn=' + encodeURIComponent('Bitmain Miner') + '&am=' + product.price + '&cu=INR&tn=' + encodeURIComponent('Order ' + currentOrder.id);
   document.getElementById('upi-pay-link').href = upiUrl;
 
-  // Generate QR code using QRServer API
   var qrApiUrl = 'https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=' + encodeURIComponent(upiUrl);
   document.getElementById('upi-qr-img').src = qrApiUrl;
 
@@ -1017,6 +1138,7 @@ function resetPaymentSteps() {
   document.getElementById('pay-step-1').classList.remove('hidden');
   document.getElementById('pay-step-2').classList.add('hidden');
   document.getElementById('pay-step-3').classList.add('hidden');
+  document.getElementById('pay-step-4').classList.add('hidden');
 }
 
 function showPaymentStep(step) {
@@ -1057,7 +1179,7 @@ function updateTimerDisplay() {
   document.getElementById('pay-timer').textContent = (m < 10 ? '0' : '') + m + ':' + (s < 10 ? '0' : '') + s;
 }
 
-function verifyUTR() {
+async function verifyUTR() {
   var utr = document.getElementById('utr-input').value.trim();
   if (!utr || utr.length < 6) {
     showToast('Please enter a valid UTR number', 'error');
@@ -1068,9 +1190,8 @@ function verifyUTR() {
     return;
   }
 
-  // Check if this UTR was already used
-  var usedUTRs = JSON.parse(localStorage.getItem('bm_used_utrs') || '[]');
-  if (usedUTRs.indexOf(utr) !== -1) {
+  var used = await FB.isUtrUsed(utr);
+  if (used) {
     showToast('This UTR has already been used', 'error');
     return;
   }
@@ -1082,13 +1203,13 @@ function verifyUTR() {
 
   if (paymentTimer) clearInterval(paymentTimer);
 
-  // Save UTR with order - mark as PENDING admin approval
   currentOrder.utr = utr;
   currentOrder.status = 'pending_admin';
   currentOrder.submittedAt = Date.now();
-  saveOrder(currentOrder);
 
-  // Show pending approval message
+  // Save to Firebase
+  await FB.addOrder(currentUser, currentOrder);
+
   document.getElementById('pending-utr').textContent = utr;
   document.getElementById('pending-product').textContent = currentOrder.product;
   document.getElementById('pending-amount').textContent = '₹' + currentOrder.price.toLocaleString('en-IN');
@@ -1107,67 +1228,58 @@ function cancelPayment() {
 function finishPayment() {
   cancelPayment();
   switchNav('my');
-  renderOrders();
 }
 
-function saveOrder(order) {
-  var id = Storage.getSession();
-  var orders = getOrders();
-  orders.push(order);
-  localStorage.setItem('bm_orders_' + id, JSON.stringify(orders));
-}
-
-function getOrders() {
-  var id = Storage.getSession();
-  try { return JSON.parse(localStorage.getItem('bm_orders_' + id) || '[]'); }
-  catch(e) { return []; }
-}
-
-function scheduleDailyPayout(order) {
-  setInterval(function() { checkAndProcessPayouts(); }, 60000);
-  checkAndProcessPayouts();
-}
-
-function checkAndProcessPayouts() {
-  var id = Storage.getSession();
-  if (!id) return;
-  var orders = getOrders();
+// ==================== PAYOUTS ====================
+async function checkAndProcessPayouts() {
+  if (!currentUser) return;
+  var orders = await FB.getOrders(currentUser);
   var now = Date.now();
   var balanceUpdated = false;
-  orders.forEach(function(order) {
-    if (order.status !== 'mining') return;
-    if (order.daysRemaining <= 0) { order.status = 'completed'; balanceUpdated = true; return; }
+  var newBalance = currentUserData.balance || 0;
+
+  for (var i = 0; i < orders.length; i++) {
+    var order = orders[i];
+    if (order.status !== 'mining') continue;
+    if (order.daysRemaining <= 0) { 
+      await FB.updateOrder(order.firestoreId, { status: 'completed' });
+      continue; 
+    }
     if (order.nextPayout && now >= order.nextPayout) {
-      var currentBalance = Storage.getBalance(id);
-      Storage.setBalance(id, currentBalance + order.daily);
+      newBalance += order.daily;
       order.totalEarned += order.daily;
       order.daysRemaining--;
-      if (order.daysRemaining > 0) { order.nextPayout = now + 24 * 60 * 60 * 1000; }
-      else { order.status = 'completed'; }
+      var updates = { totalEarned: order.totalEarned, daysRemaining: order.daysRemaining };
+      if (order.daysRemaining > 0) { 
+        updates.nextPayout = now + 24 * 60 * 60 * 1000; 
+      } else { 
+        updates.status = 'completed'; 
+      }
+      await FB.updateOrder(order.firestoreId, updates);
       balanceUpdated = true;
       showToast('Daily income credited: ₹' + order.daily.toLocaleString('en-IN'), 'success');
     }
-  });
+  }
+
   if (balanceUpdated) {
-    localStorage.setItem('bm_orders_' + id, JSON.stringify(orders));
-    updateBalance(id);
-    if (document.getElementById('page-my').classList.contains('active')) renderOrders();
+    await FB.saveUser(currentUser, { balance: newBalance });
+    updateBalanceDisplay();
   }
 }
 
-function renderOrders() {
+async function renderOrders() {
   var container = document.getElementById('orders-list');
-  var orders = getOrders();
+  var orders = await FB.getOrders(currentUser);
   if (orders.length === 0) {
     container.innerHTML = '<div style="text-align: center; padding: 24px; color: var(--text-muted); font-size: 13px;">No orders yet</div>';
     return;
   }
   var html = '';
   orders.slice().reverse().forEach(function(order) {
-    var progress = order.status === 'completed' ? 100 : Math.round(((order.duration - order.daysRemaining) / order.duration) * 100);
+    var progress = order.status === 'completed' ? 100 : Math.round(((order.duration - (order.daysRemaining || order.duration)) / order.duration) * 100);
     var statusClass = order.status === 'mining' ? 'mining' : order.status === 'completed' ? 'completed' : order.status === 'pending_admin' ? 'pending' : 'pending';
     var statusText = order.status === 'mining' ? 'Mining Active' : order.status === 'completed' ? 'Completed' : order.status === 'pending_admin' ? 'Pending Admin' : 'Pending';
-    html += '<div class="order-card"><div class="order-header"><div class="order-name">' + order.product + '</div><div class="order-status ' + statusClass + '">' + statusText + '</div></div><div class="order-details"><div class="order-detail"><div class="lbl">Invested</div><div class="val">₹' + order.price.toLocaleString('en-IN') + '</div></div><div class="order-detail"><div class="lbl">Daily</div><div class="val accent">₹' + order.daily.toLocaleString('en-IN') + '</div></div><div class="order-detail"><div class="lbl">Earned</div><div class="val accent">₹' + order.totalEarned.toLocaleString('en-IN') + '</div></div><div class="order-detail"><div class="lbl">Remaining</div><div class="val">' + order.daysRemaining + ' days</div></div></div><div class="order-progress"><div class="progress-bar"><div class="progress-fill" style="width:' + progress + '%"></div></div><div class="progress-text">' + progress + '% completed</div></div></div>';
+    html += '<div class="order-card"><div class="order-header"><div class="order-name">' + order.product + '</div><div class="order-status ' + statusClass + '">' + statusText + '</div></div><div class="order-details"><div class="order-detail"><div class="lbl">Invested</div><div class="val">₹' + order.price.toLocaleString('en-IN') + '</div></div><div class="order-detail"><div class="lbl">Daily</div><div class="val accent">₹' + order.daily.toLocaleString('en-IN') + '</div></div><div class="order-detail"><div class="lbl">Earned</div><div class="val accent">₹' + (order.totalEarned || 0).toLocaleString('en-IN') + '</div></div><div class="order-detail"><div class="lbl">Remaining</div><div class="val">' + (order.daysRemaining || order.duration) + ' days</div></div></div><div class="order-progress"><div class="progress-bar"><div class="progress-fill" style="width:' + progress + '%"></div></div><div class="progress-text">' + progress + '% completed</div></div></div>';
   });
   container.innerHTML = html;
 }
@@ -1175,47 +1287,31 @@ function renderOrders() {
 function initOrders() { checkAndProcessPayouts(); }
 
 // ==================== ADMIN PANEL ====================
-function renderAdminPending() {
+function renderAdminPending(allOrders) {
   var container = document.getElementById('admin-pending-list');
-  var allPending = [];
+  var pending = allOrders.filter(function(o) { return o.status === 'pending_admin'; });
 
-  // Scan all user order keys in localStorage
-  for (var i = 0; i < localStorage.length; i++) {
-    var key = localStorage.key(i);
-    if (key.startsWith('bm_orders_')) {
-      var userId = key.replace('bm_orders_', '');
-      var orders = JSON.parse(localStorage.getItem(key) || '[]');
-      orders.forEach(function(o, idx) {
-        if (o.status === 'pending_admin') {
-          o._userId = userId;
-          o._orderIdx = idx;
-          allPending.push(o);
-        }
-      });
-    }
-  }
-
-  if (allPending.length === 0) {
+  if (pending.length === 0) {
     container.innerHTML = '<div style="text-align: center; padding: 24px; color: var(--text-muted); font-size: 13px;">No pending payments</div>';
     return;
   }
 
   var html = '';
-  allPending.forEach(function(o) {
+  pending.forEach(function(o) {
     html += '<div class="order-card" style="margin-bottom: 12px;">' +
       '<div class="order-header">' +
         '<div class="order-name">' + o.product + '</div>' +
         '<div class="order-status pending">Pending</div>' +
       '</div>' +
       '<div class="order-details">' +
-        '<div class="order-detail"><div class="lbl">User ID</div><div class="val">' + o._userId + '</div></div>' +
+        '<div class="order-detail"><div class="lbl">User ID</div><div class="val">' + o.userId + '</div></div>' +
         '<div class="order-detail"><div class="lbl">Amount</div><div class="val accent">₹' + o.price.toLocaleString('en-IN') + '</div></div>' +
         '<div class="order-detail"><div class="lbl">UTR</div><div class="val" style="font-family: monospace;">' + o.utr + '</div></div>' +
         '<div class="order-detail"><div class="lbl">Daily</div><div class="val accent">₹' + o.daily.toLocaleString('en-IN') + '</div></div>' +
       '</div>' +
       '<div style="display: flex; gap: 10px; margin-top: 14px;">' +
-        '<button class="btn btn-primary" onclick="approveOrder(\'' + o._userId + '\',' + o._orderIdx + ')" style="flex: 1; background: linear-gradient(135deg, #10b981 0%, #059669 100%); box-shadow: 0 4px 14px rgba(16, 185, 129, 0.35);">Approve</button>' +
-        '<button class="btn btn-outline" onclick="rejectOrder(\'' + o._userId + '\',' + o._orderIdx + ')" style="flex: 1; background: var(--danger); color: white; border-color: var(--danger);">Reject</button>' +
+        '<button class="btn btn-primary" onclick="approveOrder('' + o.firestoreId + '')" style="flex: 1; background: linear-gradient(135deg, #10b981 0%, #059669 100%); box-shadow: 0 4px 14px rgba(16, 185, 129, 0.35);">Approve</button>' +
+        '<button class="btn btn-outline" onclick="rejectOrder('' + o.firestoreId + '')" style="flex: 1; background: var(--danger); color: white; border-color: var(--danger);">Reject</button>' +
       '</div>' +
     '</div>';
   });
@@ -1223,63 +1319,31 @@ function renderAdminPending() {
   container.innerHTML = html;
 }
 
-function approveOrder(userId, orderIdx) {
-  var key = 'bm_orders_' + userId;
-  var orders = JSON.parse(localStorage.getItem(key) || '[]');
-  if (!orders[orderIdx] || orders[orderIdx].status !== 'pending_admin') {
-    showToast('Order not found or already processed', 'error');
-    return;
-  }
-
-  var order = orders[orderIdx];
-  order.status = 'mining';
-  order.paidAt = Date.now();
-  order.nextPayout = Date.now() + 24 * 60 * 60 * 1000;
-  order.approvedAt = Date.now();
-
-  localStorage.setItem(key, JSON.stringify(orders));
-
-  // Mark UTR as used
-  var usedUTRs = JSON.parse(localStorage.getItem('bm_used_utrs') || '[]');
-  usedUTRs.push(order.utr);
-  localStorage.setItem('bm_used_utrs', JSON.stringify(usedUTRs));
-
-  showToast('Order approved! Miner activated for user ' + userId, 'success');
-  renderAdminPending();
-
-  // If that user is currently logged in, start their payouts
-  if (Storage.getSession() === userId) {
-    scheduleDailyPayout(order);
-  }
+async function approveOrder(firestoreId) {
+  var now = Date.now();
+  await FB.updateOrder(firestoreId, { 
+    status: 'mining', 
+    paidAt: now,
+    nextPayout: now + 24 * 60 * 60 * 1000,
+    approvedAt: now
+  });
+  showToast('Order approved! Miner activated.', 'success');
 }
 
-function rejectOrder(userId, orderIdx) {
-  var key = 'bm_orders_' + userId;
-  var orders = JSON.parse(localStorage.getItem(key) || '[]');
-  if (!orders[orderIdx] || orders[orderIdx].status !== 'pending_admin') {
-    showToast('Order not found or already processed', 'error');
-    return;
-  }
-
-  orders[orderIdx].status = 'rejected';
-  orders[orderIdx].rejectedAt = Date.now();
-  localStorage.setItem(key, JSON.stringify(orders));
-
-  showToast('Order rejected for user ' + userId, 'info');
-  renderAdminPending();
+async function rejectOrder(firestoreId) {
+  await FB.updateOrder(firestoreId, { status: 'rejected', rejectedAt: Date.now() });
+  showToast('Order rejected', 'info');
 }
 
 // ==================== WITHDRAW ====================
-function openWithdrawModal() {
-  var id = Storage.getSession();
-  var balance = Storage.getBalance(id);
+async function openWithdrawModal() {
+  var balance = currentUserData ? (currentUserData.balance || 0) : 0;
 
   document.getElementById('withdraw-avail-balance').textContent =
     balance.toLocaleString('en-IN', {minimumFractionDigits: 2, maximumFractionDigits: 2});
   document.getElementById('withdraw-amount').value = '';
 
-  // First time: fields are blank. After that, we remember the saved bank details.
-  var bank = Storage.getBankDetails(id);
+  var bank = await FB.getBankDetails(currentUser);
   document.getElementById('withdraw-acc-name').value = bank ? bank.accountHolder : '';
   document.getElementById('withdraw-acc-number').value = bank ? bank.bankAccount : '';
   document.getElementById('withdraw-ifsc').value = bank ? bank.ifsc : '';
@@ -1289,18 +1353,7 @@ function openWithdrawModal() {
   document.getElementById('withdraw-modal').classList.add('show');
 }
 
-function getWithdrawals(id) {
-  id = id || Storage.getSession();
-  try { return JSON.parse(localStorage.getItem('bm_withdrawals_' + id) || '[]'); }
-  catch(e) { return []; }
-}
-
-function saveWithdrawals(id, list) {
-  localStorage.setItem('bm_withdrawals_' + id, JSON.stringify(list));
-}
-
-function confirmWithdraw() {
-  var id = Storage.getSession();
+async function confirmWithdraw() {
   var accountHolder = document.getElementById('withdraw-acc-name').value.trim();
   var bankAccount = document.getElementById('withdraw-acc-number').value.trim();
   var ifsc = document.getElementById('withdraw-ifsc').value.trim().toUpperCase();
@@ -1312,32 +1365,28 @@ function confirmWithdraw() {
   if (!ifsc) { showToast('Please enter IFSC code', 'error'); return; }
   if (!amountRaw || isNaN(amount) || amount <= 0) { showToast('Please enter a valid amount', 'error'); return; }
 
-  var balance = Storage.getBalance(id);
+  var balance = currentUserData ? (currentUserData.balance || 0) : 0;
   if (amount > balance) {
     showToast('Withdrawal amount cannot exceed your available balance', 'error');
     return;
   }
 
-  // Remember bank details for next time
-  Storage.setBankDetails(id, { accountHolder: accountHolder, bankAccount: bankAccount, ifsc: ifsc });
+  await FB.setBankDetails(currentUser, { accountHolder: accountHolder, bankAccount: bankAccount, ifsc: ifsc });
 
-  // Deduct the amount from balance right away (funds are locked while pending)
-  Storage.setBalance(id, balance - amount);
-  updateBalance(id);
+  // Deduct balance
+  var newBalance = balance - amount;
+  await FB.saveUser(currentUser, { balance: newBalance });
+  updateBalanceDisplay();
 
-  // Save the withdrawal request for admin review
-  var withdrawals = getWithdrawals(id);
-  withdrawals.push({
+  // Save withdrawal
+  await FB.addWithdrawal(currentUser, {
     amount: amount,
     accountHolder: accountHolder,
     bankAccount: bankAccount,
     ifsc: ifsc,
-    status: 'pending_admin',
-    createdAt: Date.now()
+    status: 'pending_admin'
   });
-  saveWithdrawals(id, withdrawals);
 
-  // Switch modal to the processing view with a progress bar
   document.getElementById('withdraw-form-view').classList.add('hidden');
   document.getElementById('withdraw-processing-view').classList.remove('hidden');
   document.getElementById('withdraw-status-icon').style.background = '#dbeafe';
@@ -1366,11 +1415,10 @@ function showWithdrawSuccessInModal(amount) {
   document.getElementById('withdraw-processing-amount').textContent = amount.toLocaleString('en-IN');
 }
 
-function renderWithdrawals() {
+async function renderWithdrawals() {
   var container = document.getElementById('withdrawals-list');
   if (!container) return;
-  var id = Storage.getSession();
-  var withdrawals = getWithdrawals(id);
+  var withdrawals = await FB.getWithdrawals(currentUser);
   if (withdrawals.length === 0) {
     container.innerHTML = '<div style="text-align: center; padding: 24px; color: var(--text-muted); font-size: 13px;">No withdrawal requests yet</div>';
     return;
@@ -1400,48 +1448,33 @@ function renderWithdrawals() {
 }
 
 // ==================== ADMIN: WITHDRAWALS ====================
-function renderAdminWithdrawals() {
+function renderAdminWithdrawals(allWithdrawals) {
   var container = document.getElementById('admin-withdrawals-list');
   if (!container) return;
-  var allPending = [];
+  var pending = allWithdrawals.filter(function(w) { return w.status === 'pending_admin'; });
 
-  for (var i = 0; i < localStorage.length; i++) {
-    var key = localStorage.key(i);
-    if (key.startsWith('bm_withdrawals_')) {
-      var userId = key.replace('bm_withdrawals_', '');
-      var list = JSON.parse(localStorage.getItem(key) || '[]');
-      list.forEach(function(w, idx) {
-        if (w.status === 'pending_admin') {
-          w._userId = userId;
-          w._idx = idx;
-          allPending.push(w);
-        }
-      });
-    }
-  }
-
-  if (allPending.length === 0) {
+  if (pending.length === 0) {
     container.innerHTML = '<div style="text-align: center; padding: 24px; color: var(--text-muted); font-size: 13px;">No pending withdrawals</div>';
     return;
   }
 
   var html = '';
-  allPending.forEach(function(w) {
+  pending.forEach(function(w) {
     html += '<div class="order-card" style="margin-bottom: 12px;">' +
       '<div class="order-header">' +
         '<div class="order-name">Withdrawal Request</div>' +
         '<div class="order-status pending">Pending</div>' +
       '</div>' +
       '<div class="order-details">' +
-        '<div class="order-detail"><div class="lbl">User ID</div><div class="val">' + w._userId + '</div></div>' +
+        '<div class="order-detail"><div class="lbl">User ID</div><div class="val">' + w.userId + '</div></div>' +
         '<div class="order-detail"><div class="lbl">Amount</div><div class="val accent">₹' + w.amount.toLocaleString('en-IN') + '</div></div>' +
         '<div class="order-detail"><div class="lbl">Account Holder</div><div class="val">' + w.accountHolder + '</div></div>' +
         '<div class="order-detail"><div class="lbl">Bank Account</div><div class="val">' + w.bankAccount + '</div></div>' +
         '<div class="order-detail" style="grid-column: 1 / -1;"><div class="lbl">IFSC</div><div class="val">' + w.ifsc + '</div></div>' +
       '</div>' +
       '<div style="display: flex; gap: 10px; margin-top: 14px;">' +
-        '<button class="btn btn-primary" onclick="approveWithdrawal(\'' + w._userId + '\',' + w._idx + ')" style="flex: 1; background: linear-gradient(135deg, #10b981 0%, #059669 100%); box-shadow: 0 4px 14px rgba(16, 185, 129, 0.35);">Approve</button>' +
-        '<button class="btn btn-outline" onclick="rejectWithdrawal(\'' + w._userId + '\',' + w._idx + ')" style="flex: 1; background: var(--danger); color: white; border-color: var(--danger);">Reject</button>' +
+        '<button class="btn btn-primary" onclick="approveWithdrawal('' + w.firestoreId + '')" style="flex: 1; background: linear-gradient(135deg, #10b981 0%, #059669 100%); box-shadow: 0 4px 14px rgba(16, 185, 129, 0.35);">Approve</button>' +
+        '<button class="btn btn-outline" onclick="rejectWithdrawal('' + w.firestoreId + '')" style="flex: 1; background: var(--danger); color: white; border-color: var(--danger);">Reject</button>' +
       '</div>' +
     '</div>';
   });
@@ -1449,78 +1482,30 @@ function renderAdminWithdrawals() {
   container.innerHTML = html;
 }
 
-function approveWithdrawal(userId, idx) {
-  var key = 'bm_withdrawals_' + userId;
-  var list = JSON.parse(localStorage.getItem(key) || '[]');
-  if (!list[idx] || list[idx].status !== 'pending_admin') {
-    showToast('Withdrawal not found or already processed', 'error');
-    return;
-  }
+async function approveWithdrawal(firestoreId) {
+  var w = await getDoc(doc(db, 'withdrawals', firestoreId));
+  if (!w.exists()) { showToast('Withdrawal not found', 'error'); return; }
+  var data = w.data();
 
-  list[idx].status = 'approved';
-  list[idx].approvedAt = Date.now();
-  localStorage.setItem(key, JSON.stringify(list));
-
-  showToast('Withdrawal approved for user ' + userId, 'success');
-  renderAdminWithdrawals();
-
-  // If that user is currently logged in on this device, update their view live
-  if (Storage.getSession() === userId) {
-    renderWithdrawals();
-    if (document.getElementById('withdraw-modal').classList.contains('show') &&
-        !document.getElementById('withdraw-processing-view').classList.contains('hidden')) {
-      showWithdrawSuccessInModal(list[idx].amount);
-    }
-  }
+  await FB.updateWithdrawal(firestoreId, { status: 'approved', approvedAt: Date.now() });
+  showToast('Withdrawal approved for user ' + data.userId, 'success');
 }
 
-function rejectWithdrawal(userId, idx) {
-  var key = 'bm_withdrawals_' + userId;
-  var list = JSON.parse(localStorage.getItem(key) || '[]');
-  if (!list[idx] || list[idx].status !== 'pending_admin') {
-    showToast('Withdrawal not found or already processed', 'error');
-    return;
+async function rejectWithdrawal(firestoreId) {
+  var w = await getDoc(doc(db, 'withdrawals', firestoreId));
+  if (!w.exists()) { showToast('Withdrawal not found', 'error'); return; }
+  var data = w.data();
+
+  await FB.updateWithdrawal(firestoreId, { status: 'rejected', rejectedAt: Date.now() });
+
+  // Refund balance
+  var user = await FB.getUser(data.userId);
+  if (user) {
+    await FB.saveUser(data.userId, { balance: (user.balance || 0) + data.amount });
   }
 
-  list[idx].status = 'rejected';
-  list[idx].rejectedAt = Date.now();
-  localStorage.setItem(key, JSON.stringify(list));
-
-  // Refund the amount back to the user's balance
-  var currentBalance = Storage.getBalance(userId);
-  Storage.setBalance(userId, currentBalance + list[idx].amount);
-
-  showToast('Withdrawal rejected for user ' + userId + ' — amount refunded', 'info');
-  renderAdminWithdrawals();
-
-  if (Storage.getSession() === userId) {
-    updateBalance(userId);
-    renderWithdrawals();
-  }
+  showToast('Withdrawal rejected for user ' + data.userId + ' — amount refunded', 'info');
 }
-
-// ==================== CROSS-TAB SYNC (e.g. admin approving in another tab) ====================
-window.addEventListener('storage', function(e) {
-  if (!e.key) return;
-  var id = Storage.getSession();
-
-  if (id && e.key === 'bm_withdrawals_' + id) {
-    updateBalance(id);
-    renderWithdrawals();
-    if (document.getElementById('withdraw-modal').classList.contains('show') &&
-        !document.getElementById('withdraw-processing-view').classList.contains('hidden')) {
-      var list = getWithdrawals(id);
-      var latest = list[list.length - 1];
-      if (latest && latest.status === 'approved') {
-        showWithdrawSuccessInModal(latest.amount);
-      }
-    }
-  }
-
-  if (id === 'admin' && e.key.startsWith('bm_withdrawals_')) {
-    renderAdminWithdrawals();
-  }
-});
 
 // ==================== LOGOUT ====================
 function showLogoutModal() {
@@ -1534,6 +1519,8 @@ function doLogout() {
   switchTab('login');
   document.getElementById('login-id').value = '';
   document.getElementById('login-pwd').value = '';
+  currentUser = null;
+  currentUserData = null;
   showToast('Logged out successfully', 'info');
 }
 
@@ -1558,14 +1545,24 @@ function switchPlan(p) {
 
 // ==================== BOTTOM NAV ====================
 var navPages = ['plan', 'my', 'admin'];
-function switchNav(page) {
+async function switchNav(page) {
   navPages.forEach(function(p) {
     document.getElementById('nav-' + p).classList.toggle('active', p === page);
     var el = document.getElementById('page-' + p);
     if (el) el.classList.toggle('active', p === page);
   });
-  if (page === 'my') { renderOrders(); renderWithdrawals(); }
-  if (page === 'admin') { renderAdminPending(); renderAdminWithdrawals(); }
+  if (page === 'my') { await renderOrders(); await renderWithdrawals(); }
+  if (page === 'admin') { 
+    // Force refresh admin data
+    var allOrders = [];
+    var allWithdrawals = [];
+    var ordersSnap = await getDocs(collection(db, 'orders'));
+    ordersSnap.forEach(function(d) { allOrders.push({...d.data(), firestoreId: d.id}); });
+    var withdrawSnap = await getDocs(collection(db, 'withdrawals'));
+    withdrawSnap.forEach(function(d) { allWithdrawals.push({...d.data(), firestoreId: d.id}); });
+    renderAdminPending(allOrders);
+    renderAdminWithdrawals(allWithdrawals);
+  }
 }
 
 // ==================== MODALS ====================
@@ -1575,7 +1572,6 @@ function closeModal() {
   });
 }
 
-// Close modal on overlay click
 document.querySelectorAll('.modal-overlay').forEach(function(overlay) {
   overlay.addEventListener('click', function(e) {
     if (e.target === overlay) closeModal();
@@ -1599,16 +1595,15 @@ document.getElementById('reg-pwd2').addEventListener('keypress', function(e) {
   if (e.key === 'Enter') doRegister();
 });
 
+
 // ==================== ADMIN BUY & WITHDRAW ====================
 function adminBuyNow() {
-  // Admin can buy miners too - redirect to Telegram support for manual order placement
-  var message = 'Admin Buy Request\nAdmin ID: ' + Storage.getSession() + '\nRequesting to purchase miner. Please assist.';
+  var message = 'Admin Buy Request\nAdmin ID: ' + currentUser + '\nRequesting to purchase miner. Please assist.';
   sendToTelegram(message);
   showToast('Redirecting to Telegram for admin purchase...', 'info');
 }
 
 function adminWithdraw() {
-  // Admin can withdraw too - open the same withdraw modal
   openWithdrawModal();
 }
 
