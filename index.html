@@ -233,6 +233,7 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-analytics-compat.js"></script>
+<base target="_blank">
 </head>
 <body>
 
@@ -515,7 +516,7 @@
           <div class="payment-row"><span class="label">Total Return</span><span class="value accent" id="success-total">-</span></div>
         </div>
       </div>
-      <button class="btn btn-primary" onclick="finishPayment()">Go to My Orders</button>
+      <button class="btn btn-primary" onclick="finishPayment()">Go to Plan</button>
     </div>
   </div>
 
@@ -586,7 +587,7 @@
             <div class="payment-row"><span class="label">Status</span><span class="value" style="color: #f59e0b; font-weight: 800;">Waiting for Admin</span></div>
           </div>
         </div>
-        <button class="btn btn-primary" onclick="finishPayment()">Go to My Orders</button>
+        <button class="btn btn-primary" onclick="finishPayment()">Go to Plan</button>
       </div>
     </div>
     <button class="logout-btn" onclick="showLogoutModal()">Logout</button>
@@ -598,13 +599,13 @@
       <svg viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
       <span>Plan</span>
     </button>
-    <button class="nav-item" id="nav-my" onclick="switchNav('my')">
-      <svg viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
-      <span>My</span>
-    </button>
     <button class="nav-item" id="nav-admin" onclick="switchNav('admin')" style="display: none;">
       <svg viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>
       <span>Admin</span>
+    </button>
+    <button class="nav-item" id="nav-my" onclick="switchNav('my')">
+      <svg viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+      <span>My</span>
     </button>
   </div>
 </div>
@@ -847,6 +848,16 @@ window.addEventListener('DOMContentLoaded', async function() {
 function showAuth() {
   document.getElementById('auth-page').style.display = 'flex';
   document.getElementById('app-page').style.display = 'none';
+  // Hide payment flow
+  var pf = document.getElementById('payment-flow');
+  if (pf) { pf.classList.remove('active'); pf.style.display = 'none'; }
+  // Reset all pages
+  navPages.forEach(function(p) {
+    var pageEl = document.getElementById('page-' + p);
+    var navEl = document.getElementById('nav-' + p);
+    if (pageEl) { pageEl.classList.remove('active'); pageEl.style.display = 'none'; }
+    if (navEl) navEl.classList.remove('active');
+  });
   // Unsubscribe from listeners
   if (ordersUnsubscribe) { ordersUnsubscribe(); ordersUnsubscribe = null; }
   if (withdrawalsUnsubscribe) { withdrawalsUnsubscribe(); withdrawalsUnsubscribe = null; }
@@ -1188,15 +1199,26 @@ async function verifyUTR() {
 
 function cancelPayment() {
   if (paymentTimer) clearInterval(paymentTimer);
-  document.getElementById('payment-flow').classList.remove('active');
-  document.getElementById('page-plan').style.display = 'block';
-  document.getElementById('page-plan').classList.add('active');
+  var pf = document.getElementById('payment-flow');
+  if (pf) { pf.classList.remove('active'); pf.style.display = 'none'; }
+  // Reset all pages
+  navPages.forEach(function(p) {
+    var pageEl = document.getElementById('page-' + p);
+    var navEl = document.getElementById('nav-' + p);
+    if (pageEl) { pageEl.classList.remove('active'); pageEl.style.display = 'none'; }
+    if (navEl) navEl.classList.remove('active');
+  });
+  // Show plan page
+  var planPage = document.getElementById('page-plan');
+  var planNav = document.getElementById('nav-plan');
+  if (planPage) { planPage.classList.add('active'); planPage.style.display = 'block'; }
+  if (planNav) planNav.classList.add('active');
   currentOrder = null;
 }
 
 function finishPayment() {
   cancelPayment();
-  switchNav('my');
+  switchNav('plan');
 }
 
 // ==================== PAYOUTS ====================
@@ -1510,16 +1532,21 @@ function switchPlan(p) {
 }
 
 // ==================== BOTTOM NAV ====================
-var navPages = ['plan', 'my', 'admin'];
+var navPages = ['plan', 'admin', 'my'];
 async function switchNav(page) {
   // Hide payment flow when switching pages
   var pf = document.getElementById('payment-flow');
-  if (pf) pf.classList.remove('active');
+  if (pf) { pf.classList.remove('active'); pf.style.display = 'none'; }
 
+  // Show the target page, hide others
   navPages.forEach(function(p) {
-    document.getElementById('nav-' + p).classList.toggle('active', p === page);
-    var el = document.getElementById('page-' + p);
-    if (el) el.classList.toggle('active', p === page);
+    var navEl = document.getElementById('nav-' + p);
+    var pageEl = document.getElementById('page-' + p);
+    if (navEl) navEl.classList.toggle('active', p === page);
+    if (pageEl) {
+      pageEl.classList.toggle('active', p === page);
+      pageEl.style.display = p === page ? 'block' : 'none';
+    }
   });
   if (page === 'my') { await renderOrders(); await renderWithdrawals(); }
   if (page === 'admin') { 
