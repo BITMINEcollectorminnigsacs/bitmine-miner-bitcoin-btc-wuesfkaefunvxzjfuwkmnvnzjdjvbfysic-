@@ -143,15 +143,7 @@
   .buy-btn { width: 100%; padding: 14px; background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%); color: white; font-size: 15px; font-weight: 700; border: none; cursor: pointer; transition: var(--transition); letter-spacing: 0.5px; font-family: inherit; }
   .buy-btn:hover { opacity: 0.92; }
   .buy-btn:active { transform: scale(0.99); }
-  .vip-card { background: linear-gradient(135deg, #1a1a2e, #16213e); border-radius: var(--radius); overflow: hidden; margin-bottom: 14px; padding: 20px; display: flex; align-items: center; gap: 16px; border: 1px solid rgba(255,255,255,0.05); transition: var(--transition); }
-  .vip-card:hover { transform: translateY(-2px); box-shadow: var(--shadow-lg); }
-  .vip-badge { width: 52px; height: 52px; background: linear-gradient(135deg, var(--accent), var(--accent-dark)); border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 20px; font-weight: 900; color: white; flex-shrink: 0; box-shadow: 0 4px 12px rgba(245, 158, 11, 0.3); }
-  .vip-info { flex: 1; }
-  .vip-name { font-size: 15px; font-weight: 800; color: var(--accent); margin-bottom: 3px; }
-  .vip-desc { font-size: 12px; color: #94a3b8; line-height: 1.5; }
-  .vip-price { text-align: right; }
-  .vip-price-val { font-size: 20px; font-weight: 900; color: white; }
-  .vip-price-label { font-size: 10px; color: #64748b; margin-top: 2px; }
+
   .bottom-nav { position: fixed; bottom: 0; left: 50%; transform: translateX(-50%); width: 100%; max-width: 480px; background: rgba(255,255,255,0.95); backdrop-filter: blur(12px); border-top: 1px solid var(--border); display: grid; grid-template-columns: repeat(3, 1fr); z-index: 100; padding-bottom: env(safe-area-inset-bottom, 0); }
   .nav-item { display: flex; flex-direction: column; align-items: center; padding: 10px 0 8px; cursor: pointer; transition: var(--transition); border: none; background: transparent; font-family: inherit; }
   .nav-item span { font-size: 11px; margin-top: 3px; color: var(--text-muted); font-weight: 500; transition: var(--transition); }
@@ -159,8 +151,8 @@
   .nav-item.active span { color: var(--primary); }
   .nav-item.active svg { stroke: var(--primary); }
   .nav-item:active { transform: scale(0.9); }
-  .page { display: none; animation: fadeIn 0.3s ease; }
-  .page.active { display: block; }
+  .page { display: none; }
+  .page.active { display: block; animation: fadeIn 0.3s ease; }
   @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
   .my-page { padding: 16px; }
   .user-card { background: linear-gradient(135deg, #1e3a8a, #2563eb); border-radius: var(--radius); padding: 24px 20px; color: white; margin-bottom: 16px; box-shadow: var(--shadow); position: relative; overflow: hidden; }
@@ -238,12 +230,9 @@
   .progress-text { font-size: 11px; color: var(--text-muted); margin-top: 4px; text-align: right; }
   .hidden { display: none !important; }
 </style>
-<base target="_blank">
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-analytics-compat.js"></script>
-<base target="_blank">
-<base target="_blank">
 </head>
 <body>
 
@@ -264,9 +253,9 @@
     <!-- LOGIN -->
     <div class="form-wrap" id="form-login">
       <div class="form-group">
-        <label>User ID</label>
+        <label>Phone Number</label>
         <div class="input-wrap">
-          <input type="text" id="login-id" placeholder="Enter 10-digit User ID" maxlength="10" inputmode="numeric"/>
+          <input type="tel" id="login-id" placeholder="Enter 10-digit phone number" maxlength="10" inputmode="numeric"/>
         </div>
       </div>
       <div class="form-group">
@@ -330,7 +319,7 @@
     <div class="plan-tabs-wrap">
       <div class="plan-tabs">
         <button class="plan-tab active" id="pt-long" onclick="switchPlan('long')">Long-term Plan</button>
-        <button class="plan-tab" id="pt-vip" onclick="switchPlan('vip')">VIP Benefits</button>
+        
       </div>
       <button class="withdraw-btn" onclick="openWithdrawModal()" style="margin-top: 12px; width: calc(100% - 32px); margin-left: 16px; margin-right: 16px;">Withdraw</button>
     </div>
@@ -375,7 +364,7 @@
             <div class="stat-cell"><div class="stat-label">Duration</div><div class="stat-value">7 Days</div></div>
             <div class="stat-cell"><div class="stat-label">Total Return</div><div class="stat-value accent">378</div></div>
           </div>
-          <button class="buy-btn" onclick="buyNowTelegram('BITCOIN MINER S21 PRO', 270)">Buy Now</button>
+          <button class="buy-btn" onclick="buyNow('BITCOIN MINER S21 PRO', 270)">Buy Now</button>
         </div>
 
         <div class="product-card">
@@ -412,7 +401,7 @@
             <div class="stat-cell"><div class="stat-label">Duration</div><div class="stat-value">15 Days</div></div>
             <div class="stat-cell"><div class="stat-label">Total Return</div><div class="stat-value accent">3,375</div></div>
           </div>
-          <button class="buy-btn" onclick="buyNowTelegram('BITCOIN MINER S19 XP', 1500)">Buy Now</button>
+          <button class="buy-btn" onclick="buyNow('BITCOIN MINER S19 XP', 1500)">Buy Now</button>
         </div>
 
         <div class="product-card">
@@ -449,37 +438,11 @@
             <div class="stat-cell"><div class="stat-label">Duration</div><div class="stat-value">30 Days</div></div>
             <div class="stat-cell"><div class="stat-label">Total Return</div><div class="stat-value accent">19,500</div></div>
           </div>
-          <button class="buy-btn" onclick="buyNowTelegram('BITCOIN MINER S21 HYDRO', 5000)">Buy Now</button>
+          <button class="buy-btn" onclick="buyNow('BITCOIN MINER S21 HYDRO', 5000)">Buy Now</button>
         </div>
       </div>
 
-      <div id="vip-plan" class="hidden">
-        <div class="section-title">VIP Exclusive Benefits</div>
-        <div class="vip-card">
-          <div class="vip-badge">V1</div>
-          <div class="vip-info">
-            <div class="vip-name">VIP 1 &mdash; Silver</div>
-            <div class="vip-desc">Daily income boost +5%<br>Priority withdrawal processing</div>
-          </div>
-          <div class="vip-price"><div class="vip-price-val">999</div><div class="vip-price-label">/ month</div></div>
-        </div>
-        <div class="vip-card" style="background:linear-gradient(135deg,#1a1a00,#2a2200);">
-          <div class="vip-badge" style="background:linear-gradient(135deg,#fbbf24,#d97706);">V2</div>
-          <div class="vip-info">
-            <div class="vip-name" style="color:#fbbf24;">VIP 2 &mdash; Gold</div>
-            <div class="vip-desc">Daily income boost +12%<br>Dedicated account manager</div>
-          </div>
-          <div class="vip-price"><div class="vip-price-val">2,999</div><div class="vip-price-label">/ month</div></div>
-        </div>
-        <div class="vip-card" style="background:linear-gradient(135deg,#0d0d1a,#1a1a30);">
-          <div class="vip-badge" style="background:linear-gradient(135deg,#94a3b8,#64748b);">V3</div>
-          <div class="vip-info">
-            <div class="vip-name" style="color:#94a3b8;">VIP 3 &mdash; Platinum</div>
-            <div class="vip-desc">Daily income boost +25%<br>Zero withdrawal fees</div>
-          </div>
-          <div class="vip-price"><div class="vip-price-val">7,999</div><div class="vip-price-label">/ month</div></div>
-        </div>
-      </div>
+
     </div>
 
 
@@ -579,7 +542,7 @@
   <!-- MY PAGE -->
   <div class="page my-page" id="page-my">
     <div class="user-card">
-      <div class="user-label">User ID</div>
+      <div class="user-label">Phone Number</div>
       <div class="user-phone" id="my-phone">XXXXXXXXXX</div>
       <div class="user-balance-wrap">
         <div class="user-label">Account Balance</div>
@@ -601,7 +564,7 @@
     <div class="settings-card">
       <div class="settings-title">Account Settings</div>
       <div class="settings-list">
-        <button class="settings-item" onclick="showToast("Support: t.me/BITMINE_MINER_SUPPORT", "info")">
+        <button class="settings-item" onclick="openTelegramSupport()">
           <div class="settings-icon" style="background:#f3e8ff;">📞</div>
           <span>Customer Support</span>
           <span class="settings-arrow">›</span>
@@ -721,17 +684,7 @@ const TELEGRAM_LINK = 'https://t.me/BITMINE_MINER_SUPPORT';
 
 // ==================== PREMADE ACCOUNTS ====================
 var PREMADE_ACCOUNTS = {
-  'admin': { password: 'admin123', balance: 0 },
-  '6361279247': { password: 'shashasha1', balance: 0 },
-  '9535762075': { password: 'klmnopqrst2', balance: 108 },
-  '8073919594': { password: 'Chetanm2239v', balance: 54},
-  '1000000004': { password: 'defghijkl4', balance: 1500 },
-  '1000000005': { password: 'mnopqrstu5', balance: 7500 },
-  '1000000006': { password: 'vwxyzabcd6', balance: 2000 },
-  '1000000007': { password: 'efghijklm7', balance: 6000 },
-  '1000000008': { password: 'nopqrstuv8', balance: 4500 },
-  '1000000009': { password: 'wxyzabcde9', balance: 8000 },
-  '1000000010': { password: 'fghijklmn0', balance: 3500 }
+  'admin': { password: 'admin123', balance: 0 }
 };
 
 // ==================== FIREBASE DATA LAYER ====================
@@ -740,7 +693,7 @@ const FB = {
   async getUser(userId) {
     try {
       const snap = await db.collection("users").doc(userId).get();
-      if (snap.exists()) return snap.data();
+      if (snap.exists) return snap.data();
       if (PREMADE_ACCOUNTS[userId]) {
         const data = { 
           password: PREMADE_ACCOUNTS[userId].password, 
@@ -839,7 +792,7 @@ const FB = {
   async getBankDetails(userId) {
     try {
       const snap = await db.collection("bankDetails").doc(userId).get();
-      return snap.exists() ? snap.data() : null;
+      return snap.exists ? snap.data() : null;
     } catch(e) { return null; }
   },
 
@@ -902,35 +855,52 @@ function showAuth() {
 }
 
 async function showApp(id) {
-  currentUser = id;
-  document.getElementById('auth-page').style.display = 'none';
-  document.getElementById('app-page').style.display = 'block';
-  document.getElementById('my-phone').textContent = id;
+  try {
+    currentUser = id;
 
-  // Load user data
-  currentUserData = await FB.getUser(id);
-  updateBalanceDisplay();
+    // CRITICAL: Switch display BEFORE anything else
+    document.getElementById('auth-page').style.display = 'none';
+    document.getElementById('app-page').style.display = 'block';
+    document.getElementById('my-phone').textContent = id;
 
-  // Setup real-time listeners
-  setupUserListeners(id);
+    // Load user data
+    currentUserData = await FB.getUser(id);
+    if (!currentUserData) {
+      console.error('User data not found for:', id);
+      showToast('Error: User data not found', 'error');
+      showAuth();
+      return;
+    }
+    updateBalanceDisplay();
 
-  // Show admin nav for admin
-  if (id === 'admin') {
-    document.getElementById('nav-admin').style.display = 'flex';
-    setupAdminListeners();
-  } else {
-    document.getElementById('nav-admin').style.display = 'none';
+    // Setup real-time listeners
+    setupUserListeners(id);
+
+    // Show admin nav for admin
+    if (id === 'admin') {
+      document.getElementById('nav-admin').style.display = 'flex';
+      setupAdminListeners();
+    } else {
+      document.getElementById('nav-admin').style.display = 'none';
+    }
+
+    // Ensure plan page is active by default
+    switchNav('plan');
+
+    // Start payout checker
+    setInterval(checkAndProcessPayouts, 60000);
+    checkAndProcessPayouts();
+  } catch (err) {
+    console.error('showApp error:', err);
+    showToast('Error loading app', 'error');
+    showAuth();
   }
-
-  // Start payout checker
-  setInterval(checkAndProcessPayouts, 60000);
-  checkAndProcessPayouts();
 }
 
 function setupUserListeners(userId) {
   // Listen to user balance changes
   db.collection("users").doc(userId).onSnapshot((snap) => {
-    if (snap.exists()) {
+    if (snap.exists) {
       currentUserData = snap.data();
       updateBalanceDisplay();
     }
@@ -992,81 +962,85 @@ function switchTab(tab) {
 
 // ==================== LOGIN ====================
 async function doLogin() {
-  var id = document.getElementById('login-id').value.trim();
-  var pwd = document.getElementById('login-pwd').value.trim();
+  try {
+    var id = document.getElementById('login-id').value.trim();
+    var pwd = document.getElementById('login-pwd').value.trim();
 
-  if (!id || !pwd) {
-    showToast('Please enter User ID and password', 'error');
-    return;
+    if (!id || !pwd) {
+      showToast('Please enter phone number and password', 'error');
+      return;
+    }
+
+    var user = await FB.getUser(id);
+
+    if (!user) {
+      showToast('Phone number not registered', 'error');
+      return;
+    }
+
+    if (user.password !== pwd) {
+      showToast('Incorrect password', 'error');
+      return;
+    }
+
+    Storage.setSession(id);
+    document.getElementById('login-id').value = '';
+    document.getElementById('login-pwd').value = '';
+    showApp(id);
+    showToast('Welcome back!', 'success');
+  } catch (err) {
+    console.error('Login error:', err);
+    showToast('Login failed: ' + (err.message || 'Unknown error'), 'error');
   }
-
-  var user = await FB.getUser(id);
-
-  if (!user) {
-    showToast('User ID not found', 'error');
-    return;
-  }
-
-  if (user.password !== pwd) {
-    showToast('Incorrect password', 'error');
-    return;
-  }
-
-  Storage.setSession(id);
-  document.getElementById('login-id').value = '';
-  document.getElementById('login-pwd').value = '';
-  showApp(id);
-  showToast('Welcome back!', 'success');
 }
 
 // ==================== REGISTER ====================
 async function doRegister() {
-  var phone = document.getElementById('reg-phone').value.trim();
-  var pwd = document.getElementById('reg-pwd').value.trim();
-  var pwd2 = document.getElementById('reg-pwd2').value.trim();
+  try {
+    var phone = document.getElementById('reg-phone').value.trim();
+    var pwd = document.getElementById('reg-pwd').value.trim();
+    var pwd2 = document.getElementById('reg-pwd2').value.trim();
 
-  if (!phone || !pwd || !pwd2) {
-    showToast('Please fill all fields', 'error');
-    return;
-  }
-  if (phone.length < 10 || !/^\d+$/.test(phone)) {
-    showToast('Enter a valid 10-digit phone number', 'error');
-    return;
-  }
-  if (pwd.length < 6) {
-    showToast('Password must be at least 6 characters', 'error');
-    return;
-  }
-  if (pwd !== pwd2) {
-    showToast('Passwords do not match', 'error');
-    return;
-  }
+    if (!phone || !pwd || !pwd2) {
+      showToast('Please fill all fields', 'error');
+      return;
+    }
+    if (phone.length < 10 || !/^\d+$/.test(phone)) {
+      showToast('Enter a valid 10-digit phone number', 'error');
+      return;
+    }
+    if (pwd.length < 6) {
+      showToast('Password must be at least 6 characters', 'error');
+      return;
+    }
+    if (pwd !== pwd2) {
+      showToast('Passwords do not match', 'error');
+      return;
+    }
 
-  var existing = await FB.getUser(phone);
-  if (existing) {
-    showToast('This phone number is already registered', 'error');
-    return;
-  }
+    var existing = await FB.getUser(phone);
+    if (existing) {
+      showToast('This phone number is already registered', 'error');
+      return;
+    }
 
-  var newUser = {
-    password: pwd,
-    balance: 0,
-    phone: phone,
-    joined: Date.now()
-  };
-  await FB.saveUser(phone, newUser);
-  Storage.setSession(phone);
-  showApp(phone);
-  showToast('Account created successfully!', 'success');
+    var newUser = {
+      password: pwd,
+      balance: 0,
+      phone: phone,
+      joined: Date.now()
+    };
+    await FB.saveUser(phone, newUser);
+    Storage.setSession(phone);
+    showApp(phone);
+    showToast('Account created successfully!', 'success');
+  } catch (err) {
+    console.error('Register error:', err);
+    showToast('Registration failed: ' + (err.message || 'Unknown error'), 'error');
+  }
 }
 
 // ==================== TELEGRAM FUNCTIONS ====================
-function sendToTelegram(message) {
-  var telegramUrl = TELEGRAM_LINK + '?text=' + encodeURIComponent(message);
-  window.open(telegramUrl, '_blank');
-  showToast('Opening Telegram...', 'info');
-}
-
 function openTelegramSupport() {
   var telegramUrl = TELEGRAM_LINK + '?text=';
   window.open(telegramUrl, '_blank');
@@ -1084,7 +1058,7 @@ var currentOrder = null;
 var paymentTimer = null;
 var paymentSeconds = 300;
 
-function buyNowTelegram(productName, amount) {
+function buyNow(productName, amount) {
   var product = PRODUCT_DATA[productName];
   if (!product) return;
   // Direct payment flow - no Telegram redirect
@@ -1299,14 +1273,14 @@ function renderAdminPending(allOrders) {
         '<div class="order-status pending">Pending</div>' +
       '</div>' +
       '<div class="order-details">' +
-        '<div class="order-detail"><div class="lbl">User ID</div><div class="val">' + o.userId + '</div></div>' +
+        '<div class="order-detail"><div class="lbl">Phone</div><div class="val">' + o.userId + '</div></div>' +
         '<div class="order-detail"><div class="lbl">Amount</div><div class="val accent">₹' + o.price.toLocaleString('en-IN') + '</div></div>' +
         '<div class="order-detail"><div class="lbl">UTR</div><div class="val" style="font-family: monospace;">' + o.utr + '</div></div>' +
         '<div class="order-detail"><div class="lbl">Daily</div><div class="val accent">₹' + o.daily.toLocaleString('en-IN') + '</div></div>' +
       '</div>' +
       '<div style="display: flex; gap: 10px; margin-top: 14px;">' +
-        '<button class="btn btn-primary" onclick="approveOrder("" + o.firestoreId + "")" style="flex: 1; background: linear-gradient(135deg, #10b981 0%, #059669 100%); box-shadow: 0 4px 14px rgba(16, 185, 129, 0.35);">Approve</button>' +
-        '<button class="btn btn-outline" onclick="rejectOrder("" + o.firestoreId + "")" style="flex: 1; background: var(--danger); color: white; border-color: var(--danger);">Reject</button>' +
+        '<button class="btn btn-primary" onclick="approveOrder(\'' + o.firestoreId + '\')" style="flex: 1; background: linear-gradient(135deg, #10b981 0%, #059669 100%); box-shadow: 0 4px 14px rgba(16, 185, 129, 0.35);">Approve</button>' +
+        '<button class="btn btn-outline" onclick="rejectOrder(\'' + o.firestoreId + '\')" style="flex: 1; background: var(--danger); color: white; border-color: var(--danger);">Reject</button>' +
       '</div>' +
     '</div>';
   });
@@ -1461,15 +1435,15 @@ function renderAdminWithdrawals(allWithdrawals) {
         '<div class="order-status pending">Pending</div>' +
       '</div>' +
       '<div class="order-details">' +
-        '<div class="order-detail"><div class="lbl">User ID</div><div class="val">' + w.userId + '</div></div>' +
+        '<div class="order-detail"><div class="lbl">Phone</div><div class="val">' + w.userId + '</div></div>' +
         '<div class="order-detail"><div class="lbl">Amount</div><div class="val accent">₹' + w.amount.toLocaleString('en-IN') + '</div></div>' +
         '<div class="order-detail"><div class="lbl">Account Holder</div><div class="val">' + w.accountHolder + '</div></div>' +
         '<div class="order-detail"><div class="lbl">Bank Account</div><div class="val">' + w.bankAccount + '</div></div>' +
         '<div class="order-detail" style="grid-column: 1 / -1;"><div class="lbl">IFSC</div><div class="val">' + w.ifsc + '</div></div>' +
       '</div>' +
       '<div style="display: flex; gap: 10px; margin-top: 14px;">' +
-        '<button class="btn btn-primary" onclick="approveWithdrawal("" + w.firestoreId + "")" style="flex: 1; background: linear-gradient(135deg, #10b981 0%, #059669 100%); box-shadow: 0 4px 14px rgba(16, 185, 129, 0.35);">Approve</button>' +
-        '<button class="btn btn-outline" onclick="rejectWithdrawal("" + w.firestoreId + "")" style="flex: 1; background: var(--danger); color: white; border-color: var(--danger);">Reject</button>' +
+        '<button class="btn btn-primary" onclick="approveWithdrawal(\'' + w.firestoreId + '\')" style="flex: 1; background: linear-gradient(135deg, #10b981 0%, #059669 100%); box-shadow: 0 4px 14px rgba(16, 185, 129, 0.35);">Approve</button>' +
+        '<button class="btn btn-outline" onclick="rejectWithdrawal(\'' + w.firestoreId + '\')" style="flex: 1; background: var(--danger); color: white; border-color: var(--danger);">Reject</button>' +
       '</div>' +
     '</div>';
   });
@@ -1478,8 +1452,8 @@ function renderAdminWithdrawals(allWithdrawals) {
 }
 
 async function approveWithdrawal(firestoreId) {
-  var w = await db.collection("withdrawals".get().doc(firestoreId));
-  if (!w.exists()) { showToast('Withdrawal not found', 'error'); return; }
+  var w = await db.collection("withdrawals").doc(firestoreId).get();
+  if (!w.exists) { showToast('Withdrawal not found', 'error'); return; }
   var data = w.data();
 
   await FB.updateWithdrawal(firestoreId, { status: 'approved', approvedAt: Date.now() });
@@ -1487,8 +1461,8 @@ async function approveWithdrawal(firestoreId) {
 }
 
 async function rejectWithdrawal(firestoreId) {
-  var w = await db.collection("withdrawals".get().doc(firestoreId));
-  if (!w.exists()) { showToast('Withdrawal not found', 'error'); return; }
+  var w = await db.collection("withdrawals").doc(firestoreId).get();
+  if (!w.exists) { showToast('Withdrawal not found', 'error'); return; }
   var data = w.data();
 
   await FB.updateWithdrawal(firestoreId, { status: 'rejected', rejectedAt: Date.now() });
@@ -1531,16 +1505,17 @@ function togglePwd(id, btn) {
 
 // ==================== PLAN TABS ====================
 function switchPlan(p) {
-  var isLong = p === 'long';
-  document.getElementById('pt-long').classList.toggle('active', isLong);
-  document.getElementById('pt-vip').classList.toggle('active', !isLong);
-  document.getElementById('long-plan').classList.toggle('hidden', !isLong);
-  document.getElementById('vip-plan').classList.toggle('hidden', isLong);
+  document.getElementById('pt-long').classList.add('active');
+  document.getElementById('long-plan').classList.remove('hidden');
 }
 
 // ==================== BOTTOM NAV ====================
 var navPages = ['plan', 'my', 'admin'];
 async function switchNav(page) {
+  // Hide payment flow when switching pages
+  var pf = document.getElementById('payment-flow');
+  if (pf) pf.classList.remove('active');
+
   navPages.forEach(function(p) {
     document.getElementById('nav-' + p).classList.toggle('active', p === page);
     var el = document.getElementById('page-' + p);
@@ -1601,7 +1576,6 @@ function adminBuyNow() {
 function adminWithdraw() {
   openWithdrawModal();
 }
-
 
 </script>
 </body>
