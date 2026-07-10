@@ -144,7 +144,7 @@
   .buy-btn:hover { opacity: 0.92; }
   .buy-btn:active { transform: scale(0.99); }
 
-  .bottom-nav { position: fixed; bottom: 0; left: 50%; transform: translateX(-50%); width: 100%; max-width: 480px; background: rgba(255,255,255,0.95); backdrop-filter: blur(12px); border-top: 1px solid var(--border); display: grid; grid-template-columns: repeat(3, 1fr); z-index: 100; padding-bottom: env(safe-area-inset-bottom, 0); }
+  .bottom-nav { position: fixed; bottom: 0; left: 50%; transform: translateX(-50%); width: 100%; max-width: 480px; background: rgba(255,255,255,0.95); backdrop-filter: blur(12px); border-top: 1px solid var(--border); display: flex; justify-content: space-between; z-index: 100; padding: 0 72px env(safe-area-inset-bottom, 0) 72px; }
   .nav-item { display: flex; flex-direction: column; align-items: center; padding: 10px 0 8px; cursor: pointer; transition: var(--transition); border: none; background: transparent; font-family: inherit; }
   .nav-item span { font-size: 11px; margin-top: 3px; color: var(--text-muted); font-weight: 500; transition: var(--transition); }
   .nav-item svg { width: 22px; height: 22px; stroke: var(--text-muted); fill: none; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; transition: var(--transition); }
@@ -599,7 +599,7 @@
       <svg viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
       <span>Plan</span>
     </button>
-    <button class="nav-item" id="nav-admin" onclick="switchNav('admin')" style="display: none;">
+    <button class="nav-item" id="nav-admin" onclick="switchNav('admin')" style="display: none; visibility: hidden;">
       <svg viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>
       <span>Admin</span>
     </button>
