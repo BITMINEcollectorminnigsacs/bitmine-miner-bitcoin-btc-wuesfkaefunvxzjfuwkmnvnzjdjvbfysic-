@@ -235,6 +235,7 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-analytics-compat.js"></script>
 <base target="_blank">
 <base target="_blank">
+<base target="_blank">
 </head>
 <body>
 
@@ -1208,7 +1209,9 @@ function buyNow(productName, amount) {
 
   document.getElementById('page-plan').style.display = 'none';
   document.getElementById('page-plan').classList.remove('active');
-  document.getElementById('payment-flow').classList.add('active');
+  var pf = document.getElementById('payment-flow');
+  pf.classList.add('active');
+  pf.style.display = 'block';
 
   resetPaymentSteps();
   showPaymentStep(1);
@@ -1290,7 +1293,7 @@ async function verifyUTR() {
 
   var now = Date.now();
   currentOrder.utr = utr;
-  currentOrder.status = 'mining'; // Start mining immediately on UTR submit
+  currentOrder.status = 'pending_admin'; // Wait for admin approval
   currentOrder.submittedAt = now;
   currentOrder.paidAt = now;
   currentOrder.nextPayout = now + 24 * 60 * 60 * 1000; // First payout in 24 hours
@@ -1307,10 +1310,9 @@ async function verifyUTR() {
   document.getElementById('pending-product').textContent = currentOrder.product;
   document.getElementById('pending-amount').textContent = '₹' + currentOrder.price.toLocaleString('en-IN');
   showPaymentStep(4);
-  showToast('UTR submitted! Mining started. First payout in 24 hours.', 'success');
+  showToast('UTR submitted! Waiting for admin approval.', 'success');
 
-  // Start payout checker immediately
-  checkAndProcessPayouts();
+  // Payouts will start after admin approves
 }
 
 function cancelPayment() {
