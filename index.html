@@ -1376,20 +1376,28 @@ async function updateSettingsReferralDisplay() {
 }
 
 function copyReferralCode() {
-  var code = document.getElementById('settings-referral-code').textContent;
+  var code = currentUserData && currentUserData.referralCode ? currentUserData.referralCode : currentUser;
+  if (!code) { showToast('No referral code found', 'error'); return; }
   if (navigator.clipboard) {
     navigator.clipboard.writeText(code).then(function() {
       showToast('Referral code copied!', 'success');
+    }).catch(function() {
+      fallbackCopy(code);
     });
   } else {
-    var ta = document.createElement('textarea');
-    ta.value = code;
-    document.body.appendChild(ta);
-    ta.select();
-    document.execCommand('copy');
-    document.body.removeChild(ta);
-    showToast('Referral code copied!', 'success');
+    fallbackCopy(code);
   }
+}
+function fallbackCopy(text) {
+  var ta = document.createElement('textarea');
+  ta.value = text;
+  ta.style.position = 'fixed';
+  ta.style.opacity = '0';
+  document.body.appendChild(ta);
+  ta.select();
+  document.execCommand('copy');
+  document.body.removeChild(ta);
+  showToast('Referral code copied!', 'success');
 }
 
 // ==================== AUTH TABS ====================
