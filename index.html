@@ -230,9 +230,207 @@
   .progress-text { font-size: 11px; color: var(--text-muted); margin-top: 4px; text-align: right; }
   .hidden { display: none !important; }
 </style>
-<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-analytics-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js">
+// ==================== ADMIN STATS ====================
+async function updateAdminStats() {
+  try {
+    var totalUtr = await FB.getTotalApprovedOrders();
+    var totalWithdraw = await FB.getTotalApprovedWithdrawals();
+    var elUtr = document.getElementById('admin-total-utr');
+    var elW = document.getElementById('admin-total-withdraw');
+    if (elUtr) elUtr.textContent = '₹' + totalUtr.toLocaleString('en-IN');
+    if (elW) elW.textContent = '₹' + totalWithdraw.toLocaleString('en-IN');
+  } catch(e) { console.error('updateAdminStats error:', e); }
+}
+
+// ==================== ADMIN UPI UPDATE ====================
+async function updateAdminUpi() {
+  var newUpi = document.getElementById('admin-new-upi').value.trim();
+  if (!newUpi) { showToast('Enter a UPI ID', 'error'); return; }
+  MERCHANT_UPI = newUpi;
+  var elCurrent = document.getElementById('admin-current-upi');
+  var elDisplay = document.getElementById('upi-id-display');
+  if (elCurrent) elCurrent.textContent = newUpi;
+  if (elDisplay) elDisplay.textContent = newUpi;
+  document.getElementById('admin-new-upi').value = '';
+  showToast('UPI ID updated to ' + newUpi, 'success');
+}
+
+// ==================== ADMIN BLOCK USER ====================
+async function blockUser() {
+  var phone = document.getElementById('admin-block-phone').value.trim();
+  if (!phone) { showToast('Enter phone number to block', 'error'); return; }
+  if (!/^\d{10}$/.test(phone)) { showToast('Enter valid 10-digit phone number', 'error'); return; }
+  var user = await FB.getUser(phone);
+  if (!user) { showToast('User not found', 'error'); return; }
+  await FB.saveUser(phone, { blocked: true });
+  document.getElementById('admin-block-phone').value = '';
+  showToast('User ' + phone + ' blocked successfully', 'success');
+  renderBlockedUsers();
+}
+
+async function unblockUser(phone) {
+  await FB.saveUser(phone, { blocked: false });
+  showToast('User ' + phone + ' unblocked', 'success');
+  renderBlockedUsers();
+}
+
+async function renderBlockedUsers() {
+  try {
+    var snap = await db.collection("users").where('blocked', '==', true).get();
+    var container = document.getElementById('admin-blocked-list');
+    if (!container) return;
+    if (snap.empty) {
+      container.innerHTML = '<div style="text-align:center;padding:8px;color:var(--text-muted);font-size:12px;">No blocked users</div>';
+      return;
+    }
+    var html = '';
+    snap.forEach(function(d) {
+      var data = d.data();
+      html += '<div style="display:flex;justify-content:space-between;align-items:center;padding:10px 12px;background:#fef2f2;border-radius:8px;margin-bottom:6px;border:1px solid #fecaca;">' +
+        '<span style="font-weight:700;color:#991b1b;font-family:monospace;">' + (data.phone || d.id) + '</span>' +
+        '<button onclick="unblockUser(\'' + (data.phone || d.id) + '\')" style="background:#22c55e;color:white;border:none;padding:5px 12px;border-radius:6px;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;">Unblock</button>' +
+        '</div>';
+    });
+    container.innerHTML = html;
+  } catch(e) { console.error('renderBlockedUsers error:', e); }
+}
+
+</script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js">
+// ==================== ADMIN STATS ====================
+async function updateAdminStats() {
+  try {
+    var totalUtr = await FB.getTotalApprovedOrders();
+    var totalWithdraw = await FB.getTotalApprovedWithdrawals();
+    var elUtr = document.getElementById('admin-total-utr');
+    var elW = document.getElementById('admin-total-withdraw');
+    if (elUtr) elUtr.textContent = '₹' + totalUtr.toLocaleString('en-IN');
+    if (elW) elW.textContent = '₹' + totalWithdraw.toLocaleString('en-IN');
+  } catch(e) { console.error('updateAdminStats error:', e); }
+}
+
+// ==================== ADMIN UPI UPDATE ====================
+async function updateAdminUpi() {
+  var newUpi = document.getElementById('admin-new-upi').value.trim();
+  if (!newUpi) { showToast('Enter a UPI ID', 'error'); return; }
+  MERCHANT_UPI = newUpi;
+  var elCurrent = document.getElementById('admin-current-upi');
+  var elDisplay = document.getElementById('upi-id-display');
+  if (elCurrent) elCurrent.textContent = newUpi;
+  if (elDisplay) elDisplay.textContent = newUpi;
+  document.getElementById('admin-new-upi').value = '';
+  showToast('UPI ID updated to ' + newUpi, 'success');
+}
+
+// ==================== ADMIN BLOCK USER ====================
+async function blockUser() {
+  var phone = document.getElementById('admin-block-phone').value.trim();
+  if (!phone) { showToast('Enter phone number to block', 'error'); return; }
+  if (!/^\d{10}$/.test(phone)) { showToast('Enter valid 10-digit phone number', 'error'); return; }
+  var user = await FB.getUser(phone);
+  if (!user) { showToast('User not found', 'error'); return; }
+  await FB.saveUser(phone, { blocked: true });
+  document.getElementById('admin-block-phone').value = '';
+  showToast('User ' + phone + ' blocked successfully', 'success');
+  renderBlockedUsers();
+}
+
+async function unblockUser(phone) {
+  await FB.saveUser(phone, { blocked: false });
+  showToast('User ' + phone + ' unblocked', 'success');
+  renderBlockedUsers();
+}
+
+async function renderBlockedUsers() {
+  try {
+    var snap = await db.collection("users").where('blocked', '==', true).get();
+    var container = document.getElementById('admin-blocked-list');
+    if (!container) return;
+    if (snap.empty) {
+      container.innerHTML = '<div style="text-align:center;padding:8px;color:var(--text-muted);font-size:12px;">No blocked users</div>';
+      return;
+    }
+    var html = '';
+    snap.forEach(function(d) {
+      var data = d.data();
+      html += '<div style="display:flex;justify-content:space-between;align-items:center;padding:10px 12px;background:#fef2f2;border-radius:8px;margin-bottom:6px;border:1px solid #fecaca;">' +
+        '<span style="font-weight:700;color:#991b1b;font-family:monospace;">' + (data.phone || d.id) + '</span>' +
+        '<button onclick="unblockUser(\'' + (data.phone || d.id) + '\')" style="background:#22c55e;color:white;border:none;padding:5px 12px;border-radius:6px;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;">Unblock</button>' +
+        '</div>';
+    });
+    container.innerHTML = html;
+  } catch(e) { console.error('renderBlockedUsers error:', e); }
+}
+
+</script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-analytics-compat.js">
+// ==================== ADMIN STATS ====================
+async function updateAdminStats() {
+  try {
+    var totalUtr = await FB.getTotalApprovedOrders();
+    var totalWithdraw = await FB.getTotalApprovedWithdrawals();
+    var elUtr = document.getElementById('admin-total-utr');
+    var elW = document.getElementById('admin-total-withdraw');
+    if (elUtr) elUtr.textContent = '₹' + totalUtr.toLocaleString('en-IN');
+    if (elW) elW.textContent = '₹' + totalWithdraw.toLocaleString('en-IN');
+  } catch(e) { console.error('updateAdminStats error:', e); }
+}
+
+// ==================== ADMIN UPI UPDATE ====================
+async function updateAdminUpi() {
+  var newUpi = document.getElementById('admin-new-upi').value.trim();
+  if (!newUpi) { showToast('Enter a UPI ID', 'error'); return; }
+  MERCHANT_UPI = newUpi;
+  var elCurrent = document.getElementById('admin-current-upi');
+  var elDisplay = document.getElementById('upi-id-display');
+  if (elCurrent) elCurrent.textContent = newUpi;
+  if (elDisplay) elDisplay.textContent = newUpi;
+  document.getElementById('admin-new-upi').value = '';
+  showToast('UPI ID updated to ' + newUpi, 'success');
+}
+
+// ==================== ADMIN BLOCK USER ====================
+async function blockUser() {
+  var phone = document.getElementById('admin-block-phone').value.trim();
+  if (!phone) { showToast('Enter phone number to block', 'error'); return; }
+  if (!/^\d{10}$/.test(phone)) { showToast('Enter valid 10-digit phone number', 'error'); return; }
+  var user = await FB.getUser(phone);
+  if (!user) { showToast('User not found', 'error'); return; }
+  await FB.saveUser(phone, { blocked: true });
+  document.getElementById('admin-block-phone').value = '';
+  showToast('User ' + phone + ' blocked successfully', 'success');
+  renderBlockedUsers();
+}
+
+async function unblockUser(phone) {
+  await FB.saveUser(phone, { blocked: false });
+  showToast('User ' + phone + ' unblocked', 'success');
+  renderBlockedUsers();
+}
+
+async function renderBlockedUsers() {
+  try {
+    var snap = await db.collection("users").where('blocked', '==', true).get();
+    var container = document.getElementById('admin-blocked-list');
+    if (!container) return;
+    if (snap.empty) {
+      container.innerHTML = '<div style="text-align:center;padding:8px;color:var(--text-muted);font-size:12px;">No blocked users</div>';
+      return;
+    }
+    var html = '';
+    snap.forEach(function(d) {
+      var data = d.data();
+      html += '<div style="display:flex;justify-content:space-between;align-items:center;padding:10px 12px;background:#fef2f2;border-radius:8px;margin-bottom:6px;border:1px solid #fecaca;">' +
+        '<span style="font-weight:700;color:#991b1b;font-family:monospace;">' + (data.phone || d.id) + '</span>' +
+        '<button onclick="unblockUser(\'' + (data.phone || d.id) + '\')" style="background:#22c55e;color:white;border:none;padding:5px 12px;border-radius:6px;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;">Unblock</button>' +
+        '</div>';
+    });
+    container.innerHTML = html;
+  } catch(e) { console.error('renderBlockedUsers error:', e); }
+}
+
+</script>
 <base target="_blank">
 <base target="_blank">
 <base target="_blank">
@@ -273,6 +471,12 @@
       </div>
       <button class="btn btn-primary" onclick="doLogin()">Login</button>
       <div class="switch-text">No account? <a onclick="switchTab('register')">Register</a></div>
+      <div style="text-align:center;margin-top:16px;">
+        <a href="https://t.me/BITMINE_MINER_SUPPORT" target="_blank" style="display:inline-flex;align-items:center;gap:6px;padding:10px 20px;background:linear-gradient(135deg,#0088cc,#005f8f);color:#fff;border-radius:var(--radius-sm);font-size:13px;font-weight:700;text-decoration:none;box-shadow:0 4px 14px rgba(0,136,204,0.35);transition:all 0.25s ease;font-family:inherit;">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M11.944 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12 0a12 12 0 0 0-.056 0zm4.962 7.224c.1-.002.321.023.465.14a.506.506 0 0 1 .171.325c.016.093.036.306.02.472-.18 1.898-.962 6.502-1.36 8.627-.168.9-.499 1.201-.82 1.23-.696.065-1.225-.46-1.9-.902-1.056-.693-1.653-1.124-2.678-1.8-1.185-.78-.417-1.21.258-1.91.177-.184 3.247-2.977 3.307-3.23.007-.032.014-.15-.056-.212s-.174-.041-.249-.024c-.106.024-1.793 1.14-5.061 3.345-.48.33-.913.49-1.302.48-.428-.008-1.252-.241-1.865-.44-.752-.245-1.349-.374-1.297-.789.027-.216.325-.437.893-.663 3.498-1.524 5.83-2.529 6.998-3.014 3.332-1.386 4.025-1.627 4.476-1.635z"/></svg>
+          Contact Support
+        </a>
+      </div>
     </div>
 
     <!-- REGISTER -->
@@ -573,7 +777,6 @@
   <div class="payment-flow" id="payment-flow">
     <div class="payment-header">
       <h2>Complete Payment</h2>
-      <p>Pay via UPI to activate your miner</p>
     </div>
     <div class="step-indicator">
       <div class="step-dot active" id="step-1"></div>
@@ -600,7 +803,7 @@
         </div>
         <div class="qr-wrap">
           <img id="upi-qr-img" src="" alt="Scan to Pay" style="width: 180px; height: 180px; border-radius: 8px;"/>
-          <div class="upi-id-display">shashankmb.@ibl</div>
+          <div class="upi-id-display" id="upi-id-display">shashankmb.@ibl</div>
           <div class="upi-id-label">UPI ID</div>
           <a id="upi-pay-link" href="#" style="display: inline-block; margin-top: 12px; padding: 10px 20px; background: linear-gradient(135deg, var(--primary), var(--primary-dark)); color: white; border-radius: var(--radius-sm); font-size: 13px; font-weight: 700; text-decoration: none; box-shadow: var(--shadow);">Open UPI App</a>
         </div>
@@ -620,7 +823,9 @@
           <button class="btn btn-primary" onclick="verifyUTR()" style="background: linear-gradient(135deg, #10b981 0%, #059669 100%); box-shadow: 0 4px 14px rgba(16, 185, 129, 0.35);">Verify Payment</button>
         </div>
       </div>
-      <button class="btn btn-outline" onclick="cancelPayment()" style="background: transparent; border: 1.5px solid var(--border); color: var(--text); width: 100%;">Cancel</button>
+      <div style="display: flex; justify-content: center; padding: 0 16px 16px;">
+        <button class="btn btn-outline" onclick="cancelPayment()" style="background: transparent; border: 1.5px solid var(--border); color: var(--text); width: 100%; max-width: 200px;">Close</button>
+      </div>
     </div>    <div id="pay-step-3" class="hidden">
       <div class="payment-card" style="text-align: center; padding: 32px 20px;">
         <div style="width: 64px; height: 64px; background: linear-gradient(135deg, #22c55e, #16a34a); border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 16px; box-shadow: 0 4px 14px rgba(34, 197, 94, 0.35);">
@@ -636,7 +841,9 @@
           <div class="payment-row"><span class="label">Total Return</span><span class="value accent" id="success-total">-</span></div>
         </div>
       </div>
-      <button class="btn btn-primary" onclick="finishPayment()">Go to Plan</button>
+      <div style="display: flex; justify-content: center; padding: 0 16px 16px;">
+        <button class="btn btn-primary" onclick="finishPayment()" style="width: 100%; max-width: 200px;">Close</button>
+      </div>
     </div>
   </div>
 
@@ -654,46 +861,25 @@
       </div>
     </div>
     <div class="settings-card" style="margin-bottom: 16px;">
-      <div class="settings-title">My Orders</div>
-      <div id="orders-list">
-        <div style="text-align: center; padding: 24px; color: var(--text-muted); font-size: 13px;">No orders yet</div>
+      <div class="settings-title">Quick Access</div>
+      <div style="display: flex; flex-direction: column; gap: 10px;">
+        <button onclick="openMySection('orders')" style="display: flex; align-items: center; gap: 12px; padding: 14px 16px; background: linear-gradient(135deg, #2563eb, #1d4ed8); color: white; border: none; border-radius: var(--radius-sm); font-size: 14px; font-weight: 700; cursor: pointer; transition: var(--transition); font-family: inherit; text-align: left; box-shadow: 0 4px 14px rgba(37, 99, 235, 0.3);">
+          <span style="font-size: 20px;">📦</span>
+          <span style="flex: 1;">My Orders</span>
+          <span style="font-size: 18px; opacity: 0.7;">›</span>
+        </button>
+        <button onclick="openMySection('withdrawals')" style="display: flex; align-items: center; gap: 12px; padding: 14px 16px; background: linear-gradient(135deg, #10b981, #059669); color: white; border: none; border-radius: var(--radius-sm); font-size: 14px; font-weight: 700; cursor: pointer; transition: var(--transition); font-family: inherit; text-align: left; box-shadow: 0 4px 14px rgba(16, 185, 129, 0.3);">
+          <span style="font-size: 20px;">💰</span>
+          <span style="flex: 1;">Withdrawal History</span>
+          <span style="font-size: 18px; opacity: 0.7;">›</span>
+        </button>
+        <button onclick="openMySection('referral')" style="display: flex; align-items: center; gap: 12px; padding: 14px 16px; background: linear-gradient(135deg, #f59e0b, #d97706); color: white; border: none; border-radius: var(--radius-sm); font-size: 14px; font-weight: 700; cursor: pointer; transition: var(--transition); font-family: inherit; text-align: left; box-shadow: 0 4px 14px rgba(245, 158, 11, 0.3);">
+          <span style="font-size: 20px;">🤝</span>
+          <span style="flex: 1;">My Referrals</span>
+          <span style="font-size: 18px; opacity: 0.7;">›</span>
+        </button>
       </div>
     </div>
-    <div class="settings-card" style="margin-bottom: 16px;">
-      <div class="settings-title">Withdrawal Requests</div>
-      <div id="withdrawals-list">
-        <div style="text-align: center; padding: 24px; color: var(--text-muted); font-size: 13px;">No withdrawal requests yet</div>
-      </div>
-    </div>
-    <div class="settings-card">
-      <div class="settings-title">Referral</div>
-      <div style="padding: 12px; background: #f8fafc; border-radius: var(--radius-sm); border: 1.5px solid var(--border); margin-bottom: 12px;">
-        <div style="font-size: 11px; color: var(--text-muted); font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 6px;">Your Referral Code</div>
-        <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
-          <div id="settings-referral-code" style="font-size: 20px; font-weight: 900; color: var(--primary); font-family: monospace; letter-spacing: 2px; flex: 1;">-</div>
-          <button onclick="copyReferralCode()" style="background: var(--primary); color: white; border: none; padding: 8px 16px; border-radius: 8px; font-size: 12px; font-weight: 700; cursor: pointer; transition: var(--transition); font-family: inherit;">Copy Code</button>
-        </div>
-        <div style="font-size: 12px; color: var(--text-muted); line-height: 1.5; margin-bottom: 10px;">
-          Share this code with friends. When they register and buy a product, it counts as a completed referral.
-        </div>
-        <div style="display: flex; gap: 8px; flex-wrap: wrap;">
-          <div style="flex: 1; min-width: 100px; background: white; border-radius: 8px; padding: 10px; text-align: center; border: 1px solid var(--border);">
-            <div style="font-size: 20px; font-weight: 900; color: var(--primary);" id="settings-total-referrals">0</div>
-            <div style="font-size: 10px; color: var(--text-muted); font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;">Total Referrals</div>
-          </div>
-          <div style="flex: 1; min-width: 100px; background: white; border-radius: 8px; padding: 10px; text-align: center; border: 1px solid var(--border);">
-            <div style="font-size: 20px; font-weight: 900; color: var(--success);" id="settings-completed-referrals">0</div>
-            <div style="font-size: 10px; color: var(--text-muted); font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;">Completed</div>
-          </div>
-          <div style="flex: 1; min-width: 100px; background: white; border-radius: 8px; padding: 10px; text-align: center; border: 1px solid var(--border);">
-            <div style="font-size: 20px; font-weight: 900; color: var(--accent);" id="settings-pending-referrals">0</div>
-            <div style="font-size: 10px; color: var(--text-muted); font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;">Pending</div>
-          </div>
-        </div>
-        <div id="settings-referral-status" style="margin-top: 10px; font-size: 12px; font-weight: 600; padding: 8px 12px; border-radius: 8px; text-align: center;"></div>
-      </div>
-    </div>
-
     <div class="settings-card">
       <div class="settings-title">Support</div>
       <div class="settings-list">
@@ -703,26 +889,36 @@
           <span class="settings-arrow">›</span>
         </button>
       </div>
-
-      <!-- Step 4: Pending Admin Approval -->
-      <div id="pay-step-4" class="hidden">
-        <div class="payment-card" style="text-align: center; padding: 32px 20px;">
-          <div style="width: 64px; height: 64px; background: linear-gradient(135deg, #f59e0b, #d97706); border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 16px; box-shadow: 0 4px 14px rgba(245, 158, 11, 0.35);">
-            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
-          </div>
-          <div style="font-size: 20px; font-weight: 800; color: var(--text); margin-bottom: 4px;">Pending Verification</div>
-          <div style="font-size: 13px; color: var(--text-muted); margin-bottom: 20px;">Your payment is being reviewed by admin</div>
-          <div style="background: #f8fafc; border-radius: var(--radius-sm); padding: 16px; text-align: left;">
-            <div class="payment-row"><span class="label">Product</span><span class="value" id="pending-product">-</span></div>
-            <div class="payment-row"><span class="label">Amount</span><span class="value accent" id="pending-amount">-</span></div>
-            <div class="payment-row"><span class="label">UTR Number</span><span class="value" id="pending-utr">-</span></div>
-            <div class="payment-row"><span class="label">Status</span><span class="value" style="color: #f59e0b; font-weight: 800;">Waiting for Admin</span></div>
-          </div>
-        </div>
-        <button class="btn btn-primary" onclick="finishPayment()">Go to Plan</button>
-      </div>
     </div>
     <button class="logout-btn" onclick="showLogoutModal()">Logout</button>
+  </div>
+
+
+  <!-- ORDERS DETAIL PAGE -->
+  <div class="page" id="page-orders" style="display:none; padding: 16px 16px 80px;">
+    <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px;">
+      <button onclick="backToMy()" style="width:36px;height:36px;border-radius:50%;border:none;background:var(--card);box-shadow:var(--shadow);display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:18px;color:var(--text);">‹</button>
+      <h2 style="font-size:18px;font-weight:800;color:var(--text);">My Orders</h2>
+    </div>
+    <div id="orders-detail-list"></div>
+  </div>
+
+  <!-- WITHDRAWALS DETAIL PAGE -->
+  <div class="page" id="page-withdrawals" style="display:none; padding: 16px 16px 80px;">
+    <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px;">
+      <button onclick="backToMy()" style="width:36px;height:36px;border-radius:50%;border:none;background:var(--card);box-shadow:var(--shadow);display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:18px;color:var(--text);">‹</button>
+      <h2 style="font-size:18px;font-weight:800;color:var(--text);">Withdrawal History</h2>
+    </div>
+    <div id="withdrawals-detail-list"></div>
+  </div>
+
+  <!-- REFERRAL DETAIL PAGE -->
+  <div class="page" id="page-referral" style="display:none; padding: 16px 16px 80px;">
+    <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px;">
+      <button onclick="backToMy()" style="width:36px;height:36px;border-radius:50%;border:none;background:var(--card);box-shadow:var(--shadow);display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:18px;color:var(--text);">‹</button>
+      <h2 style="font-size:18px;font-weight:800;color:var(--text);">My Referrals</h2>
+    </div>
+    <div id="referral-detail-content"></div>
   </div>
 
   <!-- Bottom Nav -->
@@ -948,6 +1144,26 @@ const FB = {
       const snap = await q.get();
       return snap.docs.map(d => d.data());
     } catch(e) { console.error('getCompletedReferrals error:', e); return []; }
+  },
+
+  async getTotalApprovedOrders() {
+    try {
+      const q = db.collection("orders").where('status', 'in', ['mining', 'completed']);
+      const snap = await q.get();
+      let total = 0;
+      snap.forEach(function(d) { total += (d.data().price || 0); });
+      return total;
+    } catch(e) { console.error('getTotalApprovedOrders error:', e); return 0; }
+  },
+
+  async getTotalApprovedWithdrawals() {
+    try {
+      const q = db.collection("withdrawals").where('status', '==', 'approved');
+      const snap = await q.get();
+      let total = 0;
+      snap.forEach(function(d) { total += (d.data().amount || 0); });
+      return total;
+    } catch(e) { console.error('getTotalApprovedWithdrawals error:', e); return 0; }
   }
 };
 
@@ -1160,7 +1376,7 @@ async function updateSettingsReferralDisplay() {
 }
 
 function copyReferralCode() {
-  var code = document.getElementById('my-referral-code').textContent;
+  var code = document.getElementById('settings-referral-code').textContent;
   if (navigator.clipboard) {
     navigator.clipboard.writeText(code).then(function() {
       showToast('Referral code copied!', 'success');
@@ -1200,6 +1416,11 @@ async function doLogin() {
 
     if (!user) {
       showToast('Phone number not registered', 'error');
+      return;
+    }
+
+    if (user.blocked) {
+      showToast('Your account has been blocked. Contact support.', 'error');
       return;
     }
 
@@ -1365,19 +1586,16 @@ function resetPaymentSteps() {
   document.getElementById('pay-step-1').classList.remove('hidden');
   document.getElementById('pay-step-2').classList.add('hidden');
   document.getElementById('pay-step-3').classList.add('hidden');
-  document.getElementById('pay-step-4').classList.add('hidden');
 }
 
 function showPaymentStep(step) {
   document.getElementById('pay-step-1').classList.toggle('hidden', step !== 1);
   document.getElementById('pay-step-2').classList.toggle('hidden', step !== 2);
   document.getElementById('pay-step-3').classList.toggle('hidden', step !== 3);
-  document.getElementById('pay-step-4').classList.toggle('hidden', step !== 4);
   if (step >= 1) { document.getElementById('step-1').className = 'step-dot completed'; document.getElementById('line-1').className = 'step-line completed'; }
   if (step >= 2) { document.getElementById('step-2').className = 'step-dot completed'; document.getElementById('line-2').className = 'step-line completed'; }
   if (step === 2) { document.getElementById('step-2').className = 'step-dot active'; }
   if (step >= 3) { document.getElementById('step-3').className = 'step-dot completed'; }
-  if (step === 4) { document.getElementById('step-3').className = 'step-dot completed'; }
 }
 
 function goToStep2() {
@@ -1455,16 +1673,14 @@ async function verifyUTR() {
     }
   }
 
-  // Deduct price from balance (user paid via UPI)
-  // Actually no - user paid via UPI, so balance stays, daily income adds to it
-
-  document.getElementById('pending-utr').textContent = utr;
-  document.getElementById('pending-product').textContent = currentOrder.product;
-  document.getElementById('pending-amount').textContent = '₹' + currentOrder.price.toLocaleString('en-IN');
-  showPaymentStep(4);
+  // Show success screen with pending message
+  document.getElementById('success-product').textContent = currentOrder.product;
+  document.getElementById('success-amount').textContent = '₹' + currentOrder.price.toLocaleString('en-IN');
+  document.getElementById('success-daily').textContent = '₹' + currentOrder.daily.toLocaleString('en-IN');
+  document.getElementById('success-duration').textContent = currentOrder.duration + ' Days';
+  document.getElementById('success-total').textContent = '₹' + currentOrder.total.toLocaleString('en-IN');
+  showPaymentStep(3);
   showToast('UTR submitted! Waiting for admin approval.', 'success');
-
-  // Payouts will start after admin approves
 }
 
 function cancelPayment() {
@@ -1530,22 +1746,142 @@ async function checkAndProcessPayouts() {
 
 async function renderOrders() {
   var container = document.getElementById('orders-list');
-  var orders = await FB.getOrders(currentUser);
-  if (orders.length === 0) {
-    container.innerHTML = '<div style="text-align: center; padding: 24px; color: var(--text-muted); font-size: 13px;">No orders yet</div>';
-    return;
+  if (container) {
+    var orders = await FB.getOrders(currentUser);
+    if (orders.length === 0) {
+      container.innerHTML = '<div style="text-align: center; padding: 24px; color: var(--text-muted); font-size: 13px;">No orders yet</div>';
+      return;
+    }
+    var html = '';
+    orders.slice().reverse().forEach(function(order) {
+      var progress = order.status === 'completed' ? 100 : Math.round(((order.duration - (order.daysRemaining || order.duration)) / order.duration) * 100);
+      var statusClass = order.status === 'mining' ? 'mining' : order.status === 'completed' ? 'completed' : order.status === 'pending_admin' ? 'pending' : 'pending';
+      var statusText = order.status === 'mining' ? 'Mining Active' : order.status === 'completed' ? 'Completed' : order.status === 'pending_admin' ? 'Pending Admin' : 'Pending';
+      html += '<div class="order-card"><div class="order-header"><div class="order-name">' + order.product + '</div><div class="order-status ' + statusClass + '">' + statusText + '</div></div><div class="order-details"><div class="order-detail"><div class="lbl">Invested</div><div class="val">₹' + order.price.toLocaleString('en-IN') + '</div></div><div class="order-detail"><div class="lbl">Daily</div><div class="val accent">₹' + order.daily.toLocaleString('en-IN') + '</div></div><div class="order-detail"><div class="lbl">Earned</div><div class="val accent">₹' + (order.totalEarned || 0).toLocaleString('en-IN') + '</div></div><div class="order-detail"><div class="lbl">Remaining</div><div class="val">' + (order.daysRemaining || order.duration) + ' days</div></div></div><div class="order-progress"><div class="progress-bar"><div class="progress-fill" style="width:' + progress + '%"></div></div><div class="progress-text">' + progress + '% completed</div></div></div>';
+    });
+    container.innerHTML = html;
   }
-  var html = '';
-  orders.slice().reverse().forEach(function(order) {
-    var progress = order.status === 'completed' ? 100 : Math.round(((order.duration - (order.daysRemaining || order.duration)) / order.duration) * 100);
-    var statusClass = order.status === 'mining' ? 'mining' : order.status === 'completed' ? 'completed' : order.status === 'pending_admin' ? 'pending' : 'pending';
-    var statusText = order.status === 'mining' ? 'Mining Active' : order.status === 'completed' ? 'Completed' : order.status === 'pending_admin' ? 'Pending Admin' : 'Pending';
-    html += '<div class="order-card"><div class="order-header"><div class="order-name">' + order.product + '</div><div class="order-status ' + statusClass + '">' + statusText + '</div></div><div class="order-details"><div class="order-detail"><div class="lbl">Invested</div><div class="val">₹' + order.price.toLocaleString('en-IN') + '</div></div><div class="order-detail"><div class="lbl">Daily</div><div class="val accent">₹' + order.daily.toLocaleString('en-IN') + '</div></div><div class="order-detail"><div class="lbl">Earned</div><div class="val accent">₹' + (order.totalEarned || 0).toLocaleString('en-IN') + '</div></div><div class="order-detail"><div class="lbl">Remaining</div><div class="val">' + (order.daysRemaining || order.duration) + ' days</div></div></div><div class="order-progress"><div class="progress-bar"><div class="progress-fill" style="width:' + progress + '%"></div></div><div class="progress-text">' + progress + '% completed</div></div></div>';
-  });
-  container.innerHTML = html;
 }
 
 function initOrders() { checkAndProcessPayouts(); }
+
+async function openMySection(section) {
+  // Hide my page and all detail pages
+  document.getElementById('page-my').style.display = 'none';
+  document.getElementById('page-orders').style.display = 'none';
+  document.getElementById('page-withdrawals').style.display = 'none';
+  document.getElementById('page-referral').style.display = 'none';
+
+  if (section === 'orders') {
+    var orders = await FB.getOrders(currentUser);
+    orders.sort(function(a, b) { return (a.createdAt || 0) - (b.createdAt || 0); });
+    var container = document.getElementById('orders-detail-list');
+    var html = '';
+    if (orders.length === 0) {
+      html = '<div style="text-align: center; padding: 40px 24px; color: var(--text-muted); font-size: 14px;"><div style="font-size: 48px; margin-bottom: 12px;">📦</div>No orders yet</div>';
+    } else {
+      orders.forEach(function(order) {
+        var progress = order.status === 'completed' ? 100 : Math.round(((order.duration - (order.daysRemaining || order.duration)) / order.duration) * 100);
+        var statusClass = order.status === 'mining' ? 'mining' : order.status === 'completed' ? 'completed' : order.status === 'pending_admin' ? 'pending' : 'pending';
+        var statusText = order.status === 'mining' ? 'Mining Active' : order.status === 'completed' ? 'Completed' : order.status === 'pending_admin' ? 'Pending Admin' : 'Pending';
+        var dateStr = order.createdAt ? new Date(order.createdAt).toLocaleString('en-IN', {day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit'}) : 'N/A';
+        html += '<div class="order-card" style="margin-bottom: 12px;"><div class="order-header"><div class="order-name">' + order.product + '</div><div class="order-status ' + statusClass + '">' + statusText + '</div></div>' +
+          '<div style="font-size: 11px; color: var(--text-muted); margin-bottom: 8px; padding: 0 4px;">' + dateStr + '</div>' +
+          '<div class="order-details"><div class="order-detail"><div class="lbl">Invested</div><div class="val">₹' + order.price.toLocaleString('en-IN') + '</div></div><div class="order-detail"><div class="lbl">Daily</div><div class="val accent">₹' + order.daily.toLocaleString('en-IN') + '</div></div><div class="order-detail"><div class="lbl">Earned</div><div class="val accent">₹' + (order.totalEarned || 0).toLocaleString('en-IN') + '</div></div><div class="order-detail"><div class="lbl">Remaining</div><div class="val">' + (order.daysRemaining || order.duration) + ' days</div></div></div><div class="order-progress"><div class="progress-bar"><div class="progress-fill" style="width:' + progress + '%"></div></div><div class="progress-text">' + progress + '% completed</div></div></div>';
+      });
+    }
+    container.innerHTML = html;
+    document.getElementById('page-orders').classList.add('active');
+    document.getElementById('page-orders').style.display = 'block';
+  }
+
+  if (section === 'withdrawals') {
+    var withdrawals = await FB.getWithdrawals(currentUser);
+    withdrawals.sort(function(a, b) { return (a.createdAt || 0) - (b.createdAt || 0); });
+    var container = document.getElementById('withdrawals-detail-list');
+    var html = '';
+    if (withdrawals.length === 0) {
+      html = '<div style="text-align: center; padding: 40px 24px; color: var(--text-muted); font-size: 14px;"><div style="font-size: 48px; margin-bottom: 12px;">💰</div>No withdrawal requests yet</div>';
+    } else {
+      withdrawals.forEach(function(w) {
+        var pct = w.status === 'pending_admin' ? 40 : 100;
+        var barColor = w.status === 'approved' ? 'var(--success)' : w.status === 'rejected' ? 'var(--danger)' : 'linear-gradient(90deg, var(--primary), var(--accent))';
+        var statusClass = w.status === 'approved' ? 'mining' : w.status === 'rejected' ? 'completed' : 'pending';
+        var statusText = w.status === 'approved' ? 'Successful' : w.status === 'rejected' ? 'Rejected' : 'Processing';
+        var progressText = w.status === 'rejected' ? 'Rejected — amount refunded to balance' : w.status === 'approved' ? 'Withdrawal Successful' : 'Awaiting admin approval';
+        var dateStr = w.createdAt ? new Date(w.createdAt).toLocaleString('en-IN', {day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit'}) : 'N/A';
+        html += '<div class="order-card" style="margin-bottom: 12px;">' +
+          '<div class="order-header"><div class="order-name">Withdrawal</div><div class="order-status ' + statusClass + '">' + statusText + '</div></div>' +
+          '<div style="font-size: 11px; color: var(--text-muted); margin-bottom: 8px; padding: 0 4px;">' + dateStr + '</div>' +
+          '<div class="order-details"><div class="order-detail"><div class="lbl">Amount</div><div class="val accent">₹' + w.amount.toLocaleString('en-IN') + '</div></div><div class="order-detail"><div class="lbl">Account Holder</div><div class="val">' + w.accountHolder + '</div></div><div class="order-detail"><div class="lbl">Bank Account</div><div class="val">' + w.bankAccount + '</div></div><div class="order-detail"><div class="lbl">IFSC</div><div class="val">' + w.ifsc + '</div></div></div>' +
+          '<div class="order-progress"><div class="progress-bar"><div class="progress-fill" style="width:' + pct + '%;background:' + barColor + '"></div></div><div class="progress-text">' + progressText + '</div></div>' +
+          '</div>';
+      });
+    }
+    container.innerHTML = html;
+    document.getElementById('page-withdrawals').classList.add('active');
+    document.getElementById('page-withdrawals').style.display = 'block';
+  }
+
+  if (section === 'referral') {
+    var allRefs = await FB.getReferrals(currentUser);
+    var completedRefs = await FB.getCompletedReferrals(currentUser);
+    var total = allRefs.length;
+    var completed = completedRefs.length;
+    var pending = total - completed;
+    var withdrawalCount = currentUserData ? (currentUserData.withdrawalCount || 0) : 0;
+    var container = document.getElementById('referral-detail-content');
+
+    var html = '<div class="settings-card" style="margin-bottom: 16px;">' +
+      '<div style="padding: 12px; background: #f8fafc; border-radius: var(--radius-sm); border: 1.5px solid var(--border); margin-bottom: 12px;">' +
+      '<div style="font-size: 11px; color: var(--text-muted); font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 6px;">Your Referral Code</div>' +
+      '<div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">' +
+      '<div style="font-size: 20px; font-weight: 900; color: var(--primary); font-family: monospace; letter-spacing: 2px; flex: 1;">' + (currentUserData.referralCode || currentUser) + '</div>' +
+      '<button onclick="copyReferralCode()" style="background: var(--primary); color: white; border: none; padding: 8px 16px; border-radius: 8px; font-size: 12px; font-weight: 700; cursor: pointer; font-family: inherit;">Copy Code</button>' +
+      '</div>' +
+      '<div style="display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 10px;">' +
+      '<div style="flex: 1; min-width: 80px; background: white; border-radius: 8px; padding: 10px; text-align: center; border: 1px solid var(--border);"><div style="font-size: 20px; font-weight: 900; color: var(--primary);">' + total + '</div><div style="font-size: 10px; color: var(--text-muted); font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;">Total</div></div>' +
+      '<div style="flex: 1; min-width: 80px; background: white; border-radius: 8px; padding: 10px; text-align: center; border: 1px solid var(--border);"><div style="font-size: 20px; font-weight: 900; color: var(--success);">' + completed + '</div><div style="font-size: 10px; color: var(--text-muted); font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;">Completed</div></div>' +
+      '<div style="flex: 1; min-width: 80px; background: white; border-radius: 8px; padding: 10px; text-align: center; border: 1px solid var(--border);"><div style="font-size: 20px; font-weight: 900; color: var(--accent);">' + pending + '</div><div style="font-size: 10px; color: var(--text-muted); font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;">Pending</div></div>' +
+      '</div>';
+
+    if (withdrawalCount >= 1 && completed < 2) {
+      html += '<div style="background: #fef3c7; border-radius: 8px; padding: 10px 12px; font-size: 12px; color: #92400e; font-weight: 500; text-align: center;">⚠️ Need ' + (2 - completed) + ' more completed referral(s) for next withdrawal</div>';
+    } else if (withdrawalCount >= 1) {
+      html += '<div style="background: #dcfce7; border-radius: 8px; padding: 10px 12px; font-size: 12px; color: #166534; font-weight: 500; text-align: center;">✅ Referral requirement met! You can withdraw freely.</div>';
+    } else {
+      html += '<div style="background: #dbeafe; border-radius: 8px; padding: 10px 12px; font-size: 12px; color: #1e40af; font-weight: 500; text-align: center;">ℹ️ First withdrawal is free. After that, 2 completed referrals required.</div>';
+    }
+    html += '</div>';
+
+    if (allRefs.length > 0) {
+      html += '<div style="font-size: 13px; font-weight: 700; color: var(--text); margin-bottom: 12px; padding: 0 4px;">Referred Users</div>';
+      allRefs.sort(function(a, b) { return (a.joined || 0) - (b.joined || 0); });
+      allRefs.forEach(function(ref) {
+        var isCompleted = ref.hasPurchased ? true : false;
+        var dateStr = ref.joined ? new Date(ref.joined).toLocaleString('en-IN', {day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit'}) : 'N/A';
+        var statusBadge = isCompleted ? '<span style="background: #dcfce7; color: #166534; font-size: 10px; font-weight: 700; padding: 2px 8px; border-radius: 10px;">Completed</span>' : '<span style="background: #fef3c7; color: #92400e; font-size: 10px; font-weight: 700; padding: 2px 8px; border-radius: 10px;">Pending</span>';
+        html += '<div style="background: var(--card); border-radius: var(--radius-sm); padding: 12px; border: 1px solid var(--border); margin-bottom: 8px; display: flex; justify-content: space-between; align-items: center;">' +
+          '<div><div style="font-size: 14px; font-weight: 700; color: var(--text);">' + ref.phone + '</div><div style="font-size: 11px; color: var(--text-muted); margin-top: 2px;">' + dateStr + '</div></div>' +
+          statusBadge + '</div>';
+      });
+    }
+    html += '</div>';
+    container.innerHTML = html;
+    document.getElementById('page-referral').classList.add('active');
+    document.getElementById('page-referral').style.display = 'block';
+  }
+}
+
+function backToMy() {
+  document.getElementById('page-my').style.display = 'block';
+  document.getElementById('page-orders').style.display = 'none';
+  document.getElementById('page-orders').classList.remove('active');
+  document.getElementById('page-withdrawals').style.display = 'none';
+  document.getElementById('page-withdrawals').classList.remove('active');
+  document.getElementById('page-referral').style.display = 'none';
+  document.getElementById('page-referral').classList.remove('active');
+}
 
 // ==================== ADMIN PANEL ====================
 function renderAdminPending(allOrders) {
@@ -1589,6 +1925,7 @@ async function approveOrder(firestoreId) {
     approvedAt: now
   });
   showToast('Order approved! Miner activated.', 'success');
+  updateAdminStats();
 }
 
 async function rejectOrder(firestoreId) {
@@ -1689,48 +2026,11 @@ function showWithdrawSuccessInModal(amount) {
 }
 
 async function renderWithdrawals() {
+  // This function is kept for compatibility but content is now shown via openMySection
   var container = document.getElementById('withdrawals-list');
-  if (!container) return;
-  var withdrawals = await FB.getWithdrawals(currentUser);
-
-  // Check referral requirement for next withdrawal
-  var withdrawalCount = currentUserData ? (currentUserData.withdrawalCount || 0) : 0;
-  var completedRefs = await FB.getCompletedReferrals(currentUser);
-  var refStatus = '';
-  if (withdrawalCount >= 1 && completedRefs.length < 2) {
-    refStatus = '<div style="background: #fef3c7; border-radius: 8px; padding: 10px 12px; margin-bottom: 12px; font-size: 12px; color: #92400e; font-weight: 500;">' +
-      '⚠️ Need ' + (2 - completedRefs.length) + ' more completed referral(s) for next withdrawal. Share your code: <strong>' + (currentUserData.referralCode || currentUser) + '</strong></div>';
-  } else if (withdrawalCount >= 1) {
-    refStatus = '<div style="background: #dcfce7; border-radius: 8px; padding: 10px 12px; margin-bottom: 12px; font-size: 12px; color: #166534; font-weight: 500;">' +
-      '✅ Referral requirement met! You can withdraw anytime.</div>';
+  if (container) {
+    container.innerHTML = '<div style="text-align: center; padding: 24px; color: var(--text-muted); font-size: 13px;">Click Withdraw button above to view details</div>';
   }
-
-  if (withdrawals.length === 0) {
-    container.innerHTML = refStatus + '<div style="text-align: center; padding: 24px; color: var(--text-muted); font-size: 13px;">No withdrawal requests yet</div>';
-    return;
-  }
-  var html = refStatus;
-  withdrawals.slice().reverse().forEach(function(w) {
-    var pct = w.status === 'pending_admin' ? 40 : 100;
-    var barColor = w.status === 'approved' ? 'var(--success)' : w.status === 'rejected' ? 'var(--danger)' : 'linear-gradient(90deg, var(--primary), var(--accent))';
-    var statusClass = w.status === 'approved' ? 'mining' : w.status === 'rejected' ? 'completed' : 'pending';
-    var statusText = w.status === 'approved' ? 'Successful' : w.status === 'rejected' ? 'Rejected' : 'Processing';
-    var progressText = w.status === 'rejected' ? 'Rejected — amount refunded to balance'
-      : w.status === 'approved' ? 'Withdrawal Successful'
-      : 'Awaiting admin approval';
-    html += '<div class="order-card">' +
-      '<div class="order-header"><div class="order-name">Withdrawal</div><div class="order-status ' + statusClass + '">' + statusText + '</div></div>' +
-      '<div class="order-details">' +
-        '<div class="order-detail"><div class="lbl">Amount</div><div class="val accent">₹' + w.amount.toLocaleString('en-IN') + '</div></div>' +
-        '<div class="order-detail"><div class="lbl">Account Holder</div><div class="val">' + w.accountHolder + '</div></div>' +
-        '<div class="order-detail"><div class="lbl">Bank Account</div><div class="val">' + w.bankAccount + '</div></div>' +
-        '<div class="order-detail"><div class="lbl">IFSC</div><div class="val">' + w.ifsc + '</div></div>' +
-      '</div>' +
-      '<div class="order-progress"><div class="progress-bar"><div class="progress-fill" style="width:' + pct + '%;background:' + barColor + '"></div></div>' +
-      '<div class="progress-text">' + progressText + '</div></div>' +
-    '</div>';
-  });
-  container.innerHTML = html;
 }
 
 // ==================== ADMIN: WITHDRAWALS ====================
@@ -1775,6 +2075,7 @@ async function approveWithdrawal(firestoreId) {
 
   await FB.updateWithdrawal(firestoreId, { status: 'approved', approvedAt: Date.now() });
   showToast('Withdrawal approved for user ' + data.userId, 'success');
+  updateAdminStats();
 }
 
 async function rejectWithdrawal(firestoreId) {
@@ -1835,7 +2136,33 @@ function addAdminPage() {
     adminPage.className = 'page';
     adminPage.id = 'page-admin';
     adminPage.style.padding = '16px 16px 80px';
-    adminPage.innerHTML = '<div style="display: flex; justify-content: space-between; align-items: center; padding: 16px;"><h2 style="font-size: 20px; font-weight: 800; color: var(--text);">Admin Panel</h2><button onclick="doLogout()" style="padding: 8px 16px; background: var(--danger); color: white; border: none; border-radius: 8px; font-size: 13px; font-weight: 700; cursor: pointer;">Logout</button></div><div style="text-align: center; padding: 8px 0 16px;"><p style="font-size: 13px; color: var(--text-muted); margin-top: 4px;">Verify pending UTR payments</p></div><div id="admin-pending-list"><div style="text-align: center; padding: 24px; color: var(--text-muted); font-size: 13px;">No pending payments</div></div><div style="text-align: center; padding: 24px 0 16px;"><h2 style="font-size: 20px; font-weight: 800; color: var(--text);">Withdrawal Requests</h2><p style="font-size: 13px; color: var(--text-muted); margin-top: 4px;">Verify bank details and approve payouts</p></div><div id="admin-withdrawals-list"><div style="text-align: center; padding: 24px; color: var(--text-muted); font-size: 13px;">No pending withdrawals</div></div>';
+    adminPage.innerHTML = '<div style="display: flex; justify-content: space-between; align-items: center; padding: 16px;"><h2 style="font-size: 20px; font-weight: 800; color: var(--text);">Admin Panel</h2><button onclick="doLogout()" style="padding: 8px 16px; background: var(--danger); color: white; border: none; border-radius: 8px; font-size: 13px; font-weight: 700; cursor: pointer;">Logout</button></div>' +
+      '<div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; padding: 0 16px 16px;">' +
+      '<div style="background: var(--card); border-radius: var(--radius); padding: 16px; box-shadow: var(--shadow); border: 1px solid var(--border); text-align: center;">' +
+      '<div style="font-size: 28px; font-weight: 900; color: var(--primary);" id="admin-total-utr">0</div>' +
+      '<div style="font-size: 11px; color: var(--text-muted); font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; margin-top: 4px;">Total UTR Approved</div></div>' +
+      '<div style="background: var(--card); border-radius: var(--radius); padding: 16px; box-shadow: var(--shadow); border: 1px solid var(--border); text-align: center;">' +
+      '<div style="font-size: 28px; font-weight: 900; color: var(--success);" id="admin-total-withdraw">0</div>' +
+      '<div style="font-size: 11px; color: var(--text-muted); font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; margin-top: 4px;">Total Withdraw Approved</div></div>' +
+      '</div>' +
+      '<div style="padding: 0 16px 16px;">' +
+      '<div style="background: var(--card); border-radius: var(--radius); padding: 16px; box-shadow: var(--shadow); border: 1px solid var(--border); margin-bottom: 16px;">' +
+      '<div style="font-size: 13px; font-weight: 700; color: var(--text); margin-bottom: 12px; padding-bottom: 12px; border-bottom: 1px solid var(--border);">UPI Settings</div>' +
+      '<div style="font-size: 11px; color: var(--text-muted); margin-bottom: 8px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;">Current UPI ID</div>' +
+      '<div style="font-size: 16px; font-weight: 800; color: var(--primary); margin-bottom: 12px; font-family: monospace;" id="admin-current-upi">shashankmb.@ibl</div>' +
+      '<div style="display: flex; gap: 8px;">' +
+      '<div class="input-wrap" style="flex: 1;"><input type="text" id="admin-new-upi" placeholder="Enter new UPI ID" style="flex: 1; padding: 0 14px; font-size: 14px; height: 44px; color: var(--text); background: transparent; font-family: inherit; border: none; outline: none;"/></div>' +
+      '<button class="btn btn-primary" onclick="updateAdminUpi()" style="width: auto; padding: 0 20px; font-size: 13px;">Update</button>' +
+      '</div></div>' +
+      '<div style="background: var(--card); border-radius: var(--radius); padding: 16px; box-shadow: var(--shadow); border: 1px solid var(--border);">' +
+      '<div style="font-size: 13px; font-weight: 700; color: var(--text); margin-bottom: 12px; padding-bottom: 12px; border-bottom: 1px solid var(--border);">User Management</div>' +
+      '<div style="display: flex; gap: 8px; margin-bottom: 12px;">' +
+      '<div class="input-wrap" style="flex: 1;"><input type="text" id="admin-block-phone" placeholder="Enter phone number to block" maxlength="10" inputmode="numeric" style="flex: 1; padding: 0 14px; font-size: 14px; height: 44px; color: var(--text); background: transparent; font-family: inherit; border: none; outline: none;"/></div>' +
+      '<button class="btn btn-primary" onclick="blockUser()" style="width: auto; padding: 0 20px; font-size: 13px; background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%); box-shadow: 0 4px 14px rgba(239, 68, 68, 0.35);">Block</button>' +
+      '</div>' +
+      '<div id="admin-blocked-list" style="font-size: 12px; color: var(--text-muted);">No blocked users</div>' +
+      '</div></div>' +
+      '<div style="text-align: center; padding: 8px 0 16px;"><p style="font-size: 13px; color: var(--text-muted); margin-top: 4px;">Verify pending UTR payments</p></div><div id="admin-pending-list"><div style="text-align: center; padding: 24px; color: var(--text-muted); font-size: 13px;">No pending payments</div></div><div style="text-align: center; padding: 24px 0 16px;"><h2 style="font-size: 20px; font-weight: 800; color: var(--text);">Withdrawal Requests</h2><p style="font-size: 13px; color: var(--text-muted); margin-top: 4px;">Verify bank details and approve payouts</p></div><div id="admin-withdrawals-list"><div style="text-align: center; padding: 24px; color: var(--text-muted); font-size: 13px;">No pending withdrawals</div></div>';
     appContainer.appendChild(adminPage);
   }
 }
@@ -1862,7 +2189,11 @@ async function switchNav(page) {
     var adminPage = document.getElementById('page-admin');
     if (adminPage) { adminPage.classList.add('active'); adminPage.style.display = 'block'; }
   }
-  if (page === 'my') { await renderOrders(); await renderWithdrawals(); }
+  if (page === 'my') { 
+    // Clear dynamic content when switching to my page
+    var dynContainer = document.getElementById('my-dynamic-content');
+    if (dynContainer) dynContainer.innerHTML = '';
+  }
   if (page === 'admin') { 
     // Force refresh admin data
     var allOrders = [];
@@ -1873,6 +2204,8 @@ async function switchNav(page) {
     withdrawSnap.forEach(function(d) { allWithdrawals.push({...d.data(), firestoreId: d.id}); });
     renderAdminPending(allOrders);
     renderAdminWithdrawals(allWithdrawals);
+    updateAdminStats();
+    renderBlockedUsers();
   }
 }
 
@@ -1916,6 +2249,72 @@ function adminBuyNow() {
 
 function adminWithdraw() {
   openWithdrawModal();
+}
+
+
+// ==================== ADMIN STATS ====================
+async function updateAdminStats() {
+  try {
+    var totalUtr = await FB.getTotalApprovedOrders();
+    var totalWithdraw = await FB.getTotalApprovedWithdrawals();
+    var elUtr = document.getElementById('admin-total-utr');
+    var elW = document.getElementById('admin-total-withdraw');
+    if (elUtr) elUtr.textContent = '₹' + totalUtr.toLocaleString('en-IN');
+    if (elW) elW.textContent = '₹' + totalWithdraw.toLocaleString('en-IN');
+  } catch(e) { console.error('updateAdminStats error:', e); }
+}
+
+// ==================== ADMIN UPI UPDATE ====================
+async function updateAdminUpi() {
+  var newUpi = document.getElementById('admin-new-upi').value.trim();
+  if (!newUpi) { showToast('Enter a UPI ID', 'error'); return; }
+  MERCHANT_UPI = newUpi;
+  var elCurrent = document.getElementById('admin-current-upi');
+  var elDisplay = document.getElementById('upi-id-display');
+  if (elCurrent) elCurrent.textContent = newUpi;
+  if (elDisplay) elDisplay.textContent = newUpi;
+  document.getElementById('admin-new-upi').value = '';
+  showToast('UPI ID updated to ' + newUpi, 'success');
+}
+
+// ==================== ADMIN BLOCK USER ====================
+async function blockUser() {
+  var phone = document.getElementById('admin-block-phone').value.trim();
+  if (!phone) { showToast('Enter phone number to block', 'error'); return; }
+  if (!/^\d{10}$/.test(phone)) { showToast('Enter valid 10-digit phone number', 'error'); return; }
+  var user = await FB.getUser(phone);
+  if (!user) { showToast('User not found', 'error'); return; }
+  await FB.saveUser(phone, { blocked: true });
+  document.getElementById('admin-block-phone').value = '';
+  showToast('User ' + phone + ' blocked successfully', 'success');
+  renderBlockedUsers();
+}
+
+async function unblockUser(phone) {
+  await FB.saveUser(phone, { blocked: false });
+  showToast('User ' + phone + ' unblocked', 'success');
+  renderBlockedUsers();
+}
+
+async function renderBlockedUsers() {
+  try {
+    var snap = await db.collection("users").where('blocked', '==', true).get();
+    var container = document.getElementById('admin-blocked-list');
+    if (!container) return;
+    if (snap.empty) {
+      container.innerHTML = '<div style="text-align:center;padding:8px;color:var(--text-muted);font-size:12px;">No blocked users</div>';
+      return;
+    }
+    var html = '';
+    snap.forEach(function(d) {
+      var data = d.data();
+      html += '<div style="display:flex;justify-content:space-between;align-items:center;padding:10px 12px;background:#fef2f2;border-radius:8px;margin-bottom:6px;border:1px solid #fecaca;">' +
+        '<span style="font-weight:700;color:#991b1b;font-family:monospace;">' + (data.phone || d.id) + '</span>' +
+        '<button onclick="unblockUser(\'' + (data.phone || d.id) + '\')" style="background:#22c55e;color:white;border:none;padding:5px 12px;border-radius:6px;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;">Unblock</button>' +
+        '</div>';
+    });
+    container.innerHTML = html;
+  } catch(e) { console.error('renderBlockedUsers error:', e); }
 }
 
 </script>
