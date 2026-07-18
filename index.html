@@ -236,6 +236,7 @@
 <base target="_blank">
 <base target="_blank">
 <base target="_blank">
+<base target="_blank">
 </head>
 <body>
 
@@ -299,6 +300,12 @@
           <button class="eye-btn" onclick="togglePwd('reg-pwd2',this)" aria-label="Toggle password">
             <svg viewBox="0 0 24 24"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
           </button>
+        </div>
+      </div>
+      <div class="form-group">
+        <label>Referral Code (Optional)</label>
+        <div class="input-wrap">
+          <input type="text" id="reg-referral" placeholder="Enter referral code if you have one" maxlength="20" style="text-transform:uppercase;"/>
         </div>
       </div>
       <button class="btn btn-primary" onclick="doRegister()">Register</button>
@@ -659,7 +666,36 @@
       </div>
     </div>
     <div class="settings-card">
-      <div class="settings-title">Account Settings</div>
+      <div class="settings-title">Referral</div>
+      <div style="padding: 12px; background: #f8fafc; border-radius: var(--radius-sm); border: 1.5px solid var(--border); margin-bottom: 12px;">
+        <div style="font-size: 11px; color: var(--text-muted); font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 6px;">Your Referral Code</div>
+        <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
+          <div id="settings-referral-code" style="font-size: 20px; font-weight: 900; color: var(--primary); font-family: monospace; letter-spacing: 2px; flex: 1;">-</div>
+          <button onclick="copyReferralCode()" style="background: var(--primary); color: white; border: none; padding: 8px 16px; border-radius: 8px; font-size: 12px; font-weight: 700; cursor: pointer; transition: var(--transition); font-family: inherit;">Copy Code</button>
+        </div>
+        <div style="font-size: 12px; color: var(--text-muted); line-height: 1.5; margin-bottom: 10px;">
+          Share this code with friends. When they register and buy a product, it counts as a completed referral.
+        </div>
+        <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+          <div style="flex: 1; min-width: 100px; background: white; border-radius: 8px; padding: 10px; text-align: center; border: 1px solid var(--border);">
+            <div style="font-size: 20px; font-weight: 900; color: var(--primary);" id="settings-total-referrals">0</div>
+            <div style="font-size: 10px; color: var(--text-muted); font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;">Total Referrals</div>
+          </div>
+          <div style="flex: 1; min-width: 100px; background: white; border-radius: 8px; padding: 10px; text-align: center; border: 1px solid var(--border);">
+            <div style="font-size: 20px; font-weight: 900; color: var(--success);" id="settings-completed-referrals">0</div>
+            <div style="font-size: 10px; color: var(--text-muted); font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;">Completed</div>
+          </div>
+          <div style="flex: 1; min-width: 100px; background: white; border-radius: 8px; padding: 10px; text-align: center; border: 1px solid var(--border);">
+            <div style="font-size: 20px; font-weight: 900; color: var(--accent);" id="settings-pending-referrals">0</div>
+            <div style="font-size: 10px; color: var(--text-muted); font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;">Pending</div>
+          </div>
+        </div>
+        <div id="settings-referral-status" style="margin-top: 10px; font-size: 12px; font-weight: 600; padding: 8px 12px; border-radius: 8px; text-align: center;"></div>
+      </div>
+    </div>
+
+    <div class="settings-card">
+      <div class="settings-title">Support</div>
       <div class="settings-list">
         <button class="settings-item" onclick="openTelegramSupport()">
           <div class="settings-icon" style="background:#f3e8ff;">📞</div>
@@ -792,7 +828,11 @@ const FB = {
           password: PREMADE_ACCOUNTS[userId].password, 
           balance: PREMADE_ACCOUNTS[userId].balance,
           phone: userId,
-          joined: Date.now()
+          joined: Date.now(),
+          referralCode: userId,
+          referrals: [],
+          referralCount: 0,
+          completedReferrals: 0
         };
         await db.collection("users").doc(userId).set(data);
         return data;
@@ -892,6 +932,22 @@ const FB = {
   async setBankDetails(userId, details) {
     try { await db.collection("bankDetails").doc(userId).set(details); }
     catch(e) { console.error('setBankDetails error:', e); }
+  },
+
+  async getReferrals(userId) {
+    try {
+      const q = db.collection("users").where('referredBy', '==', userId);
+      const snap = await q.get();
+      return snap.docs.map(d => d.data());
+    } catch(e) { console.error('getReferrals error:', e); return []; }
+  },
+
+  async getCompletedReferrals(userId) {
+    try {
+      const q = db.collection("users").where('referredBy', '==', userId).where('hasPurchased', '==', true);
+      const snap = await q.get();
+      return snap.docs.map(d => d.data());
+    } catch(e) { console.error('getCompletedReferrals error:', e); return []; }
   }
 };
 
@@ -1062,6 +1118,61 @@ function updateBalanceDisplay() {
   if (currentUserData) {
     var balance = currentUserData.balance || 0;
     document.getElementById('my-balance').textContent = balance.toLocaleString('en-IN', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+    updateSettingsReferralDisplay();
+  }
+}
+
+async function updateSettingsReferralDisplay() {
+  if (!currentUser) return;
+  try {
+    var allRefs = await FB.getReferrals(currentUser);
+    var completedRefs = await FB.getCompletedReferrals(currentUser);
+    var total = allRefs.length;
+    var completed = completedRefs.length;
+    var pending = total - completed;
+    var withdrawalCount = currentUserData ? (currentUserData.withdrawalCount || 0) : 0;
+
+    document.getElementById('settings-referral-code').textContent = currentUserData.referralCode || currentUser;
+    document.getElementById('settings-total-referrals').textContent = total;
+    document.getElementById('settings-completed-referrals').textContent = completed;
+    document.getElementById('settings-pending-referrals').textContent = pending;
+
+    var statusEl = document.getElementById('settings-referral-status');
+    if (withdrawalCount >= 1 && completed < 2) {
+      statusEl.style.background = '#fef3c7';
+      statusEl.style.color = '#92400e';
+      statusEl.textContent = '⚠️ Need ' + (2 - completed) + ' more completed referral(s) for your next withdrawal';
+    } else if (withdrawalCount >= 1 && completed >= 2) {
+      statusEl.style.background = '#dcfce7';
+      statusEl.style.color = '#166534';
+      statusEl.textContent = '✅ Referral requirement met! You can withdraw freely.';
+    } else {
+      statusEl.style.background = '#dbeafe';
+      statusEl.style.color = '#1e40af';
+      statusEl.textContent = 'ℹ️ First withdrawal is free. After that, 2 completed referrals required.';
+    }
+  } catch(e) {
+    document.getElementById('settings-referral-code').textContent = currentUser || '-';
+    document.getElementById('settings-total-referrals').textContent = '0';
+    document.getElementById('settings-completed-referrals').textContent = '0';
+    document.getElementById('settings-pending-referrals').textContent = '0';
+  }
+}
+
+function copyReferralCode() {
+  var code = document.getElementById('my-referral-code').textContent;
+  if (navigator.clipboard) {
+    navigator.clipboard.writeText(code).then(function() {
+      showToast('Referral code copied!', 'success');
+    });
+  } else {
+    var ta = document.createElement('textarea');
+    ta.value = code;
+    document.body.appendChild(ta);
+    ta.select();
+    document.execCommand('copy');
+    document.body.removeChild(ta);
+    showToast('Referral code copied!', 'success');
   }
 }
 
@@ -1114,6 +1225,7 @@ async function doRegister() {
     var phone = document.getElementById('reg-phone').value.trim();
     var pwd = document.getElementById('reg-pwd').value.trim();
     var pwd2 = document.getElementById('reg-pwd2').value.trim();
+    var referralCode = document.getElementById('reg-referral').value.trim().toUpperCase();
 
     if (!phone || !pwd || !pwd2) {
       showToast('Please fill all fields', 'error');
@@ -1142,8 +1254,35 @@ async function doRegister() {
       password: pwd,
       balance: 0,
       phone: phone,
-      joined: Date.now()
+      joined: Date.now(),
+      referralCode: phone,
+      referrals: [],
+      referralCount: 0,
+      completedReferrals: 0,
+      withdrawalCount: 0
     };
+
+    // Validate referral code if provided
+    if (referralCode) {
+      var referrer = await FB.getUser(referralCode);
+      if (!referrer) {
+        showToast('Invalid referral code', 'error');
+        return;
+      }
+      if (referralCode === phone) {
+        showToast('You cannot refer yourself', 'error');
+        return;
+      }
+      newUser.referredBy = referralCode;
+      // Update referrer's referral list
+      var updatedReferrals = referrer.referrals || [];
+      updatedReferrals.push(phone);
+      await FB.saveUser(referralCode, {
+        referrals: updatedReferrals,
+        referralCount: updatedReferrals.length
+      });
+    }
+
     await FB.saveUser(phone, newUser);
     Storage.setSession(phone);
     showApp(phone);
@@ -1302,6 +1441,19 @@ async function verifyUTR() {
 
   // Save to Firebase
   await FB.addOrder(currentUser, currentOrder);
+
+  // Mark user as having purchased a product
+  await FB.saveUser(currentUser, { hasPurchased: true });
+  currentUserData.hasPurchased = true;
+
+  // Update referrer's completed referral count if user was referred
+  if (currentUserData.referredBy) {
+    var referrerData = await FB.getUser(currentUserData.referredBy);
+    if (referrerData) {
+      var completedCount = await FB.getCompletedReferrals(currentUserData.referredBy);
+      await FB.saveUser(currentUserData.referredBy, { completedReferrals: completedCount.length });
+    }
+  }
 
   // Deduct price from balance (user paid via UPI)
   // Actually no - user paid via UPI, so balance stays, daily income adds to it
@@ -1480,11 +1632,23 @@ async function confirmWithdraw() {
     return;
   }
 
+  // Check referral requirement for 2nd+ withdrawal
+  var withdrawalCount = currentUserData.withdrawalCount || 0;
+  if (withdrawalCount >= 1) {
+    var completedRefs = await FB.getCompletedReferrals(currentUser);
+    if (completedRefs.length < 2) {
+      showToast('You need at least 2 completed referrals (who bought a product) for your 2nd withdrawal. Current: ' + completedRefs.length, 'error');
+      return;
+    }
+  }
+
   await FB.setBankDetails(currentUser, { accountHolder: accountHolder, bankAccount: bankAccount, ifsc: ifsc });
 
-  // Deduct balance
+  // Deduct balance and increment withdrawal count
   var newBalance = balance - amount;
-  await FB.saveUser(currentUser, { balance: newBalance });
+  var newWithdrawalCount = withdrawalCount + 1;
+  await FB.saveUser(currentUser, { balance: newBalance, withdrawalCount: newWithdrawalCount });
+  currentUserData.withdrawalCount = newWithdrawalCount;
   updateBalanceDisplay();
 
   // Save withdrawal
@@ -1528,11 +1692,24 @@ async function renderWithdrawals() {
   var container = document.getElementById('withdrawals-list');
   if (!container) return;
   var withdrawals = await FB.getWithdrawals(currentUser);
+
+  // Check referral requirement for next withdrawal
+  var withdrawalCount = currentUserData ? (currentUserData.withdrawalCount || 0) : 0;
+  var completedRefs = await FB.getCompletedReferrals(currentUser);
+  var refStatus = '';
+  if (withdrawalCount >= 1 && completedRefs.length < 2) {
+    refStatus = '<div style="background: #fef3c7; border-radius: 8px; padding: 10px 12px; margin-bottom: 12px; font-size: 12px; color: #92400e; font-weight: 500;">' +
+      '⚠️ Need ' + (2 - completedRefs.length) + ' more completed referral(s) for next withdrawal. Share your code: <strong>' + (currentUserData.referralCode || currentUser) + '</strong></div>';
+  } else if (withdrawalCount >= 1) {
+    refStatus = '<div style="background: #dcfce7; border-radius: 8px; padding: 10px 12px; margin-bottom: 12px; font-size: 12px; color: #166534; font-weight: 500;">' +
+      '✅ Referral requirement met! You can withdraw anytime.</div>';
+  }
+
   if (withdrawals.length === 0) {
-    container.innerHTML = '<div style="text-align: center; padding: 24px; color: var(--text-muted); font-size: 13px;">No withdrawal requests yet</div>';
+    container.innerHTML = refStatus + '<div style="text-align: center; padding: 24px; color: var(--text-muted); font-size: 13px;">No withdrawal requests yet</div>';
     return;
   }
-  var html = '';
+  var html = refStatus;
   withdrawals.slice().reverse().forEach(function(w) {
     var pct = w.status === 'pending_admin' ? 40 : 100;
     var barColor = w.status === 'approved' ? 'var(--success)' : w.status === 'rejected' ? 'var(--danger)' : 'linear-gradient(90deg, var(--primary), var(--accent))';
